@@ -11,3 +11,6 @@
 # 👇️ Install Packages
 ### `npm install`
 ### `npm run start`
+
+# 👇️ Push Code To GITHUB
+### `git push github main`

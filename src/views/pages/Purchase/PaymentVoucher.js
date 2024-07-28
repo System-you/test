@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 
 // Components
 import Sidebar from '../../components/Sidebar';
-import DataTable from '../../components/Purchase/PaymentVoucher/DataTable';
+import Main from '../../components/Purchase/PaymentVoucher/Main';
 import Form from '../../components/Purchase/PaymentVoucher/Form';
 import { getAllData, getDocStatusColour, getAlert, getMaxPayNo } from '../../../utils/SamuiUtils';
 
@@ -75,7 +75,7 @@ function PaymentVoucher() {
           <div className="container">
             <div className="page-inner">
               {mode === 'S' ? (
-                <DataTable
+                <Main
                   masterList={dataMasterList}
                   detailList={dataDetailList}
                   statusColours={statusColours}

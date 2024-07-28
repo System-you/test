@@ -31,14 +31,22 @@ function Sidebar() {
         setAuthData(response.data.decoded);
         setLoading(false);
       } else {
-        window.location.replace('/login');
-        getAlert('FAILED', error.message);
+        getAlert('FAILED', "Token ไม่ถูกต้องหรือหมดอายุแล้ว กรุณาล็อกอินใหม่อีกครั้ง");
+
+        // เพิ่ม Delay 2 วินาที ก่อนที่จะเปลี่ยนเส้นทาง
+        setTimeout(() => {
+          window.location.replace('/login');
+        }, 2000);
       }
     } catch (error) {
       setError(error.message);
-      getAlert('FAILED', error.message);
       setLoading(false);
-      window.location.replace('/login');
+      getAlert('FAILED', error.message);
+
+      // เพิ่ม Delay 2 วินาที ก่อนที่จะเปลี่ยนเส้นทาง
+      setTimeout(() => {
+        window.location.replace('/login');
+      }, 2000);
     }
   };
 
@@ -51,7 +59,6 @@ function Sidebar() {
   }
 
   var toggle_sidebar = false,
-    toggle_quick_sidebar = false,
     toggle_topbar = false,
     minimize_sidebar = false,
     first_toggle_sidebar = false,
@@ -214,7 +221,6 @@ function Sidebar() {
     minimize_sidebar = true;
   }
 
-
   $('.sidebar').mouseenter(function () {
     if (mini_sidebar == 1 && !first_toggle_sidebar) {
       $('.wrapper').addClass('sidebar_minimize_hover');
@@ -228,8 +234,6 @@ function Sidebar() {
       first_toggle_sidebar = false;
     }
   });
-
-  // addClass if nav-item click and has subnav
 
   $(".nav-item a").on('click', (function () {
     if ($(this).parent().find('.collapse').hasClass("show")) {
@@ -279,12 +283,12 @@ function Sidebar() {
                     data-bs-target="#profileModal"
                   >
                     <p className="text-white" style={{ margin: 0 }}>
-                      <strong>{authData.Emp_Name}</strong>
+                      <strong>{authData.Emp_Name || ''}</strong>
                     </p>
                     <i className="fa fa-chevron-down ms-2 text-white" style={{ fontSize: '10px' }}></i>
                   </button>
                   <p className="text-white text-center" style={{ marginTop: '-20px' }}>
-                    <strong>( {authData.Comp_ShortName} )</strong>
+                    <strong>( {authData.Comp_ShortName || ''} )</strong>
                   </p>
                 </center>
               </li>
@@ -351,9 +355,9 @@ function Sidebar() {
               <div className="user-box">
                 <div className="u-text">
                   <h4>{authData.Emp_Name}</h4>
-                  <p className="text-muted">{authData.Dept_Name}</p>
-                  <p className="text-muted">{authData.PST_Name}</p>
-                  <p className="text-muted">{authData.Comp_Name_TH}</p>
+                  <p className="text-muted">{authData.Dept_Name || ''}</p>
+                  <p className="text-muted">{authData.PST_Name || ''}</p>
+                  <p className="text-muted">{authData.Comp_Name_TH || ''}</p>
                 </div>
               </div>
             </div>

@@ -56,17 +56,27 @@ const PoModal = ({ showPoModal, handlePoClose, poDataList, onRowSelectPo }) => {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {filteredPoDataList.map((po, index) => (
-                                            <tr
-                                                key={po.Doc_Id || index + 1}
-                                                onClick={() => onRowSelectPo(po)}
-                                                style={{ cursor: 'pointer' }}>
-                                                <td className="text-center">{po.Doc_No}</td>
-                                                <td className="text-left">{po.AP_Name}</td>
-                                                <td className="text-left">{po.Doc_Remark1}</td>
-                                                <td className="text-end">{formatCurrency(po.NetTotal)}</td>
+                                        {filteredPoDataList && filteredPoDataList.length > 0 ? (
+                                            filteredPoDataList.map((po, index) => (
+                                                <tr
+                                                    key={po.Doc_Id || index + 1}
+                                                    onClick={() => onRowSelectPo(po)}
+                                                    style={{ cursor: 'pointer' }}>
+                                                    <td className="text-center">{po.Doc_No}</td>
+                                                    <td className="text-left">{po.AP_Name}</td>
+                                                    <td className="text-left">{po.Doc_Remark1}</td>
+                                                    <td className="text-end">{formatCurrency(po.NetTotal)}</td>
+                                                </tr>
+                                            ))
+                                        ) : (
+                                            <tr>
+                                                <td colSpan="10">
+                                                    <center>
+                                                        <h5>ไม่พบข้อมูล</h5>
+                                                    </center>
+                                                </td>
                                             </tr>
-                                        ))}
+                                        )}
                                     </tbody>
                                 </table>
                             </div>

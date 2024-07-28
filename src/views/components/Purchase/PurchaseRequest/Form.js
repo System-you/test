@@ -14,7 +14,7 @@ import { prMasterModel } from '../../../../model/Purchase/PrMasterModel';
 import { prDetailModel } from '../../../../model/Purchase/PrDetailModel';
 
 // Utils
-import { getAllData, getDocType, getTransType, getViewAp, getViewItem, getAlert, formatCurrency, formatDateTime, formatThaiDate, formatThaiDateToDate, getMaxDocNo } from '../../../../utils/SamuiUtils';
+import { getAllData, getDocType, getTransType, getViewAp, getViewItem, getAlert, formatCurrency, formatDateTime, formatThaiDate, formatThaiDateToDate, getMaxDocNo, getCreateDateTime } from '../../../../utils/SamuiUtils';
 
 function Form({ callInitialize, mode, name, maxDocNo }) {
     const [formMasterList, setFormMasterList] = useState(prMasterModel());
@@ -210,7 +210,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                 ap_id: parseInt(formMasterList.apID, 10),
                 ap_code: formMasterList.apCode,
                 action_hold: parseInt("0", 10),
-                discount_value: parseFloat(formMasterList.discountValue),
+                discount_value: parseFloat(formMasterList.discountValue || 0.00),
                 discount_value_type: parseInt(selectedDiscountValueType, 10),
                 discount_cash: parseFloat("0.00"),
                 discount_cash_type: formMasterList.discountCashType,
@@ -499,8 +499,8 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             type="text"
                             className="form-control input-spacing"
                             name="createdDate"
-                            value={formMasterList.createdDate || ''}
-                            onChange={handleChangeMaster}
+                            value={getCreateDateTime()}
+                            // onChange={handleChangeMaster}
                             disabled={true} />
                     </div>
                 </div>

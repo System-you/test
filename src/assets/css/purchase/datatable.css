@@ -25,39 +25,30 @@
     opacity: 0.5;
 }
 
-.table-container {
-    overflow-x: auto;
-    /* ทำให้ตารางเลื่อนด้านข้างเมื่อเนื้อหามากเกินไป */
-}
-
-.table {
-    min-width: 100%;
-    /* ทำให้ตารางใช้ความกว้างขั้นต่ำ 100% ของ container */
-}
-
-.table {
-    border-radius: 0.5rem;
-    overflow: hidden;
-    border: 1px solid #00000025 !important;
-    /* เส้นขอบด้านนอกเป็นสีดำ */
-}
-
-.table th,
-.table td {
-    border: 1px solid #00000025 !important;
-    /* เส้นขอบสำหรับ th และ td เป็นสีดำ */
-}
-
-.table th {
-    font-weight: bold;
-    overflow: hidden;
-}
-
-.table td {
+/*     Table    */
+.table>thead>tr>th,
+.table>tbody>tr>th,
+.table>tfoot>tr>th,
+.table>thead>tr>td,
+.table>tbody>tr>td,
+.table>tfoot>tr>td {
     vertical-align: middle;
 }
 
-.table th.text-nowrap,
-.table td.text-nowrap {
-    white-space: nowrap;
+.table>tfoot>tr>td,
+.table>tfoot>tr>th {
+    padding: 12px 24px !important;
+}
+
+.table .thead-dark th {
+    background-color: #EF6C00;
+    color: #fff;
+}
+
+.table-responsive {
+    width: 100% !important;
+    overflow-x: auto;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    -ms-overflow-style: -ms-autohiding-scrollbar;
 }

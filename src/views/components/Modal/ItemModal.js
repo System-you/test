@@ -59,16 +59,26 @@ const ItemModal = ({ showItemModal, handleItemClose, itemDataList, onRowSelectIt
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {filteredItemDataList.map((item, index) => (
-                                            <tr
-                                                key={item.Item_Id || index + 1}
-                                                onClick={() => onRowSelectItem(item)}
-                                                style={{ cursor: 'pointer' }}
-                                            >
-                                                <td className="text-center">{item.Item_Code}</td>
-                                                <td className="text-left">{item.Item_Name}</td>
+                                        {filteredItemDataList && filteredItemDataList.length > 0 ? (
+                                            filteredItemDataList.map((item, index) => (
+                                                <tr
+                                                    key={item.Item_Id || index + 1}
+                                                    onClick={() => onRowSelectItem(item)}
+                                                    style={{ cursor: 'pointer' }}
+                                                >
+                                                    <td className="text-center">{item.Item_Code}</td>
+                                                    <td className="text-left">{item.Item_Name}</td>
+                                                </tr>
+                                            ))
+                                        ) : (
+                                            <tr>
+                                                <td colSpan="10">
+                                                    <center>
+                                                        <h5>ไม่พบข้อมูล</h5>
+                                                    </center>
+                                                </td>
                                             </tr>
-                                        ))}
+                                        )}
                                     </tbody>
                                 </table>
                             </div>

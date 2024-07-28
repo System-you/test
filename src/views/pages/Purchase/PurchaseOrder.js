@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 
 // Components
 import Sidebar from '../../components/Sidebar';
-import DataTable from '../../components/Purchase/PurchaseOrder/DataTable';
+import Main from '../../components/Purchase/PurchaseOrder/Main';
 import Form from '../../components/Purchase/PurchaseOrder/Form';
 import { getAllData, getDocStatusColour, getAlert, getMaxDocNo } from '../../../utils/SamuiUtils';
 
@@ -21,8 +21,8 @@ function PurchaseOrder() {
 
   const fetchRealtime = async () => {
     try {
-      const masterList = await getAllData('View_PO_NetTotal', 'ORDER BY Doc_No DESC');
-      // const detailList = await getAllData('View_PO_D', '');
+      const masterList = await getAllData('API_0201_PO_H', 'ORDER BY Doc_No DESC');
+      // const detailList = await getAllData('API_0202_PO_D', '');
       const docStatusColour = await getDocStatusColour('PO', 'Doc_Status');
       const docStatusPaidColour = await getDocStatusColour('PO', 'Doc_Status_Paid');
       const docStatusReceiveColour = await getDocStatusColour('PO', 'Doc_Status_Receive');
@@ -87,7 +87,7 @@ function PurchaseOrder() {
           <div className="container">
             <div className="page-inner">
               {mode === 'S' ? (
-                <DataTable
+                <Main
                   masterList={dataMasterList}
                   detailList={dataDetailList}
                   statusColours={statusColours}

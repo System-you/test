@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 
 // Components
 import Sidebar from '../../components/Sidebar';
-import DataTable from '../../components/Purchase/ProductReceipt/DataTable';
+import Main from '../../components/Purchase/ProductReceipt/Main';
 import Form from '../../components/Purchase/ProductReceipt/Form';
 import { getAllData, getDocStatusColour, getAlert, getMaxRecNo } from '../../../utils/SamuiUtils';
 
@@ -19,8 +19,8 @@ function ProductReceipt() {
 
   const fetchRealtime = async () => {
     try {
-      const masterList = await getAllData('View_REC_NetTotal', 'ORDER BY Rec_No DESC');
-      // const detailList = await getAllData('View_REC_NetTotal_Detial', '');
+      const masterList = await getAllData('API_0301_REC_H', 'ORDER BY Rec_No DESC');
+      // const detailList = await getAllData('API_0302_REC_D', '');
       const docStatusColour = await getDocStatusColour('POREC', 'Rec_Status');
 
       if (masterList && masterList.length > 0) {
@@ -75,7 +75,7 @@ function ProductReceipt() {
           <div className="container">
             <div className="page-inner">
               {mode === 'S' ? (
-                <DataTable
+                <Main
                   masterList={dataMasterList}
                   detailList={dataDetailList}
                   statusColours={statusColours}

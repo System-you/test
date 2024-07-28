@@ -15,7 +15,22 @@ import { poMasterModel } from '../../../../model/Purchase/PoMasterModel';
 import { poDetailModel } from '../../../../model/Purchase/PoDetailModel';
 
 // Utils
-import { getAllData, getDocType, getTransType, getViewPrH, getViewAp, getViewItem, getAlert, formatCurrency, formatDateTime, formatThaiDate, formatThaiDateToDate, getMaxDocNo, getCreateDateTime } from '../../../../utils/SamuiUtils';
+import {
+    getAllData,
+    getDocType,
+    getTransType,
+    getViewPrH,
+    getViewAp,
+    getViewItem,
+    getAlert,
+    formatCurrency,
+    formatDateTime,
+    formatThaiDate,
+    formatThaiDateToDate,
+    getMaxDocNo,
+    getCreateDateTime,
+    updateStatusByNo
+} from '../../../../utils/SamuiUtils';
 
 function Form({ callInitialize, mode, name, maxDocNo }) {
     const [formMasterList, setFormMasterList] = useState(poMasterModel());
@@ -53,7 +68,8 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
 
             const prDataList = await getViewPrH();
             if (prDataList && prDataList.length > 0) {
-                setPrDataList(prDataList);
+                const filteredList = prDataList.filter(item => item.Doc_Is_PO !== 1);
+                setPrDataList(filteredList);
             }
 
             const apDataList = await getViewAp();
@@ -79,7 +95,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
         try {
             // ค้นหาข้อมูลที่ตรงกับใน PO_H และ AP_ID ใน apDataList
             const [getAllPoH] = await Promise.all([
-                getAllData('View_PO_NetTotal', ''),
+                getAllData('API_0201_PO_H', ''),
             ]);
 
             const fromViewPoH = getAllPoH.find(po => po.Doc_No === maxDocNo);
@@ -126,7 +142,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                 };
             };
 
-            const getAllItem = await getAllData('View_PO_D', 'ORDER BY Line ASC');
+            const getAllItem = await getAllData('API_0202_PO_D', 'ORDER BY Line ASC');
             const filterItem = getAllItem.filter(item => item.Doc_No === maxDocNo);
 
             if (filterItem.length > 0) {
@@ -198,9 +214,6 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                 // ถ้าไม่มีข้อมูลใน masterList ก็ใช้ newMaxDoc ที่สร้างขึ้นตอนแรก
             }
 
-            // เรียกวันที่ปัจจุบันใหม่อีกรอบ
-            const createDateTime = getCreateDateTime();
-
             // ข้อมูลหลักที่จะส่งไปยัง API
             const formMasterData = {
                 doc_no: newMaxDoc,
@@ -209,11 +222,10 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                 doc_status: parseInt("2", 10),
                 doc_status_paid: parseInt("1", 10),
                 doc_status_receive: parseInt("1", 10),
-                doc_code: parseInt("1", 10),
+                doc_code: parseInt("2", 10),
                 doc_type: parseInt("1", 10),
                 doc_for: formMasterList.docFor,
                 doc_is_prc: "N",
-                doc_is_po: parseInt("0", 10),
                 ref_doc_id: formMasterList.refDocID,
                 ref_doc: formMasterList.refDoc,
                 ref_doc_date: formMasterList.refDocDate,
@@ -226,7 +238,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                 ap_id: parseInt(formMasterList.apID, 10),
                 ap_code: formMasterList.apCode,
                 action_hold: parseInt("0", 10),
-                discount_value: parseFloat(formMasterList.discountValue),
+                discount_value: parseFloat(formMasterList.discountValue || 0.00),
                 discount_value_type: parseInt(selectedDiscountValueType, 10),
                 discount_cash: parseFloat("0.00"),
                 discount_cash_type: formMasterList.discountCashType,
@@ -240,7 +252,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                 credit_term_2_remark: formMasterList.creditTerm2Remark,
                 acc_code: "0000",
                 emp_name: formMasterList.empName,
-                created_date: formatThaiDateToDate(createDateTime),
+                created_date: formatThaiDateToDate(formMasterList.createdDate),
                 created_by_name: window.localStorage.getItem('name'),
                 created_by_id: "1",
                 update_date: formMasterList.updateDate,
@@ -257,6 +269,14 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                 printed_date: formMasterList.printedDate,
                 printed_by: formMasterList.printedBy
             };
+
+            // อัพสถานะออกใบ PO ที่ PR_H (updateStatusByNo = async (table, field, status, where))
+            await updateStatusByNo(
+                'PR_H',                                         // table: ชื่อตาราง
+                'Doc_Is_PO',                                    // field: ชื่อฟิลด์
+                parseInt("1", 10),                              // status: สถานะที่ต้องการอัพเดท
+                `WHERE Doc_No = '${formMasterList.refDoc}'`     // where: เงื่อนไขในการอัพเดท
+            );
 
             // For Log PO_H
             // console.log("formMasterData : ", formMasterData);
@@ -293,8 +313,8 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             item_discount: item.itemDiscount,
                             item_distype: item.itemDisType === '1' ? parseInt("1", 10) : parseInt("2", 10),
                             item_total: item.itemTotal,
-                            item_rec_qty: null,
-                            item_rec_balance: null,
+                            item_rec_qty: parseInt("0", 10),
+                            item_rec_balance: item.itemQty,
                             item_status: item.itemStatus === 'Y' ? 1 : 0,
                             wh_id: null,
                             zone_id: parseInt("1", 10),
@@ -364,7 +384,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
 
             // ค้นหาข้อมูลที่ตรงกับ prSelected.Doc_No ใน PR_H และ AP_ID ใน apDataList
             const [getAllPrH, fromViewAp] = await Promise.all([
-                getAllData('API_0101_PR_H', 'ORDER BY Doc_No DESC'),
+                getAllData("API_0101_PR_H', 'ORDER BY Doc_No DESC"),
                 apDataList.find(ap => ap.AP_Id === prSelected.AP_ID)
             ]);
 
@@ -622,8 +642,8 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             type="text"
                             className="form-control input-spacing"
                             name="createdDate"
-                            value={formMasterList.createdDate || ''}
-                            onChange={handleChangeMaster}
+                            value={getCreateDateTime()}
+                            //onChange={handleChangeMaster}
                             disabled={true} />
                     </div>
                 </div>
@@ -645,7 +665,6 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                                 <i className="fas fa-search"></i>
                             </button>
                         </div>
-
                         <PrModal
                             showPrModal={showPrModal}
                             handlePrClose={handlePrClose}

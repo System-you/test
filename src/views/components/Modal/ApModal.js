@@ -54,15 +54,25 @@ const ApModal = ({ showApModal, handleApClose, apDataList, onRowSelectAp }) => {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {filteredApDataList.map((ap) => (
-                                            <tr
-                                                key={ap.AP_Id}
-                                                onClick={() => onRowSelectAp(ap)}
-                                                style={{ cursor: 'pointer' }}>
-                                                <td className="text-center">{ap.AP_Code}</td>
-                                                <td>{ap.AP_Name}</td>
+                                        {filteredApDataList && filteredApDataList.length > 0 ? (
+                                            filteredApDataList.map((ap, index) => (
+                                                <tr
+                                                    key={ap.AP_Id || index + 1}
+                                                    onClick={() => onRowSelectAp(ap)}
+                                                    style={{ cursor: 'pointer' }}>
+                                                    <td className="text-center">{ap.AP_Code}</td>
+                                                    <td>{ap.AP_Name}</td>
+                                                </tr>
+                                            ))
+                                        ) : (
+                                            <tr>
+                                                <td colSpan="10">
+                                                    <center>
+                                                        <h5>ไม่พบข้อมูล</h5>
+                                                    </center>
+                                                </td>
                                             </tr>
-                                        ))}
+                                        )}
                                     </tbody>
                                 </table>
                             </div>

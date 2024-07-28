@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 
 // Components
 import Sidebar from '../../components/Sidebar';
-import DataTable from '../../components/Purchase/PurchaseRequest/DataTable';
+import Main from '../../components/Purchase/PurchaseRequest/Main';
 import Form from '../../components/Purchase/PurchaseRequest/Form';
 import { getAllData, getDocStatusColour, getAlert, getMaxDocNo } from '../../../utils/SamuiUtils';
 
@@ -75,7 +75,7 @@ function PurchaseRequest() {
           <div className="container">
             <div className="page-inner">
               {mode === 'S' ? (
-                <DataTable
+                <Main
                   masterList={dataMasterList}
                   detailList={dataDetailList}
                   statusColours={statusColours}

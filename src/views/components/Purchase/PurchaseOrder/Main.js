@@ -2,14 +2,12 @@ import React, { useState, useEffect } from 'react';
 
 // Components
 import Breadcrumbs from '../../Breadcrumbs';
-
-// CSS
-import './../../../../assets/css/purchase/datatable.css';
+import DataTable from '../../Content/DataTable';
 
 // Utils
-import { getAlert, formatCurrency, formatDate } from '../../../../utils/SamuiUtils';
+import { getAlert } from '../../../../utils/SamuiUtils';
 
-function DataTable({ masterList, detailList, statusColours, statusPaidColours, statusReceiveColours, name, onPageInsert, onRowSelected }) {
+function Main({ masterList, detailList, statusColours, statusPaidColours, statusReceiveColours, name, onPageInsert, onRowSelected }) {
     const [dataMasterList, setDataMasterList] = useState([]);
     const [dataDetailList, setDataDetailList] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
@@ -285,98 +283,30 @@ function DataTable({ masterList, detailList, statusColours, statusPaidColours, s
                         );
                     })}
                 </div>
-                <div className="col-11">
-                    <div className="card">
-                        <div className="table-responsive">
-                            <table id="basic-datatables" className="table table-striped table-hover">
-                                <thead className="thead-dark">
-                                    {/* การตั้งให้ล็อกหัวตาราง */}
-                                    {/* <tr className={window.innerWidth >= 1024 || window.innerWidth <= 2000 ? 'fixed-header' : ''}> */}
-                                    <tr>
-                                        <th className="text-center" style={{ width: '4%' }}>เลขที่เอกสาร</th>
-                                        <th className="text-center" style={{ width: '7%' }}>ประเภทเอกสาร</th>
-                                        <th className="text-center" style={{ width: '13%' }}>สถานะ</th>
-                                        <th className="text-center" style={{ width: '4%' }}>วันที่เอกสาร</th>
-                                        <th className="text-center" style={{ width: '7%' }}>รหัสเจ้าหนี้</th>
-                                        <th className="text-center" style={{ width: '26%' }}>ชื่อเจ้าหนี้</th>
-                                        <th className="text-center" style={{ width: '4%' }}>Due Date</th>
-                                        <th className="text-center" style={{ width: '8%' }}>ยอดรวม</th>
-                                        <th className="text-center" style={{ width: '8%' }}>สร้างรายการ โดย</th>
-                                        <th className="text-center" style={{ width: '8%' }}>แก้ไขล่าสุด โดย</th>
-                                    </tr>
-                                </thead>
-                                {/* <div className="extra-spacing">
-                                    <br /><br /><br /><br />
-                                </div> */}
-                                <tbody>
-                                    {currentItems.length > 0 ? (
-                                        currentItems.map((data, index) => (
-                                            <tr onClick={() => onRowSelected(data.Doc_No)}
-                                                key={data.Doc_No || index + 1} style={{ cursor: 'pointer' }}>
-                                                <td className="text-left">{data.Doc_No || "-"}</td>
-                                                <td className="text-center">{data.DocType_Name || "-"}</td>
-                                                <td className="text-left">
-                                                    {data.DocStatus_Name ? (
-                                                        <button
-                                                            className="btn"
-                                                            style={{
-                                                                backgroundColor: data.DocStatus_Colour,
-                                                                color: 'white',
-                                                                width: '100%'
-                                                            }}
-                                                        >
-                                                            {data.DocStatus_Name}
-                                                        </button>
-                                                    ) : (
-                                                        <center>
-                                                            <p>-</p>
-                                                        </center>
-                                                    )}
-                                                </td>
-                                                <td className="text-left">{data.Doc_Date ? formatDate(data.Doc_Date) : "-"}</td>
-                                                <td className="text-left">{data.AP_Code || "-"}</td>
-                                                <td className="text-left">{data.AP_Name || "-"}</td>
-                                                <td className="text-left">{data.Doc_DueDate ? formatDate(data.Doc_DueDate) : "-"}</td>
-                                                <td className="text-end">
-                                                    {formatCurrency(data.NetTotal)}
-                                                </td>
-                                                <td className="text-center">{data.Created_By_Name || "-"}</td>
-                                                <td className="text-center">{data.Update_By_Name || "-"}</td>
-                                            </tr>
-                                        ))
-                                    ) : (
-                                        <tr>
-                                            <td colSpan="10">
-                                                <center>
-                                                    <h5>ไม่พบข้อมูล</h5>
-                                                </center>
-                                            </td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-                        {/* Pagination */}
-                        <div className="row mt-3">
-                            <div className="col-12 d-flex justify-content-end">
-                                <div className="dataTables_paginate paging_simple_numbers" id="basic-datatables_paginate">
-                                    <ul className="pagination">
-                                        <li className={`paginate_button page-item previous ${currentPage === 1 ? 'disabled' : ''}`}>
-                                            <a href="#" className="page-link" onClick={() => handlePageChange(currentPage - 1)}>Previous</a>
-                                        </li>
-                                        {renderPageNumbers()}
-                                        <li className={`paginate_button page-item next ${currentPage === Math.ceil(dataMasterList.length / itemsPerPage) ? 'disabled' : ''}`}>
-                                            <a href="#" className="page-link" onClick={() => handlePageChange(currentPage + 1)}>Next</a>
-                                        </li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <DataTable
+                    currentItems={currentItems}
+                    onRowSelected={onRowSelected}
+                    currentPage={currentPage}
+                    handlePageChange={handlePageChange}
+                    dataMasterList={dataMasterList}
+                    itemsPerPage={itemsPerPage}
+                    fieldMappings={{
+                        no: 'Doc_No',
+                        typeName: 'DocType_Name',
+                        statusName: 'DocStatus_Name',
+                        statusColor: 'DocStatus_Colour',
+                        date: 'Doc_Date',
+                        apCode: 'AP_Code',
+                        apName: 'AP_Name',
+                        dueDate: 'Doc_DueDate',
+                        netTotal: 'NetTotal',
+                        createdBy: 'Created_By_Name',
+                        updatedBy: 'Update_By_Name'
+                    }}
+                />
             </div>
         </>
     );
 }
 
-export default DataTable;
+export default Main;

@@ -18,6 +18,22 @@ const getAllData = async (table, order) => {
     }
 };
 
+const getByDocId = async (table, docId, andOrder) => {
+    try {
+        const response = await Axios.post(`${process.env.REACT_APP_API_URL}/api/get-by-doc-id`, {
+            table: table,
+            doc_id: docId,
+            and_order: andOrder
+        }, {
+            headers: { key: 'SAMUI1WoV5UbrGPq5iOXS2SS4ODR9999' }
+        });
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching data:", error);
+        return null;
+    }
+};
+
 // ดึงข้อมูลจาก Tb_Set_Company
 const getCompany = async () => {
     try {
@@ -365,13 +381,59 @@ const incrementRecNo = (recNo) => {
 const getCreateDateTime = () => {
     const today = new Date();
     const year = today.getFullYear() + 543; // แปลงเป็นปี พ.ศ.
-    const formattedNewDate = `${year}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
+    const day = today.getDate().toString().padStart(2, '0');
+    const month = (today.getMonth() + 1).toString().padStart(2, '0');
+    const formattedNewDate = `${day}-${month}-${year}`;
     const formattedTime = today.toTimeString().split(' ')[0]; // แยกเอาเฉพาะเวลา
-    return `${formattedNewDate} ${formattedTime}`
+    return `${formattedNewDate} ${formattedTime}`;
+};
+
+// Update Status ในข้อมูล
+const updateStatusByNo = async (table, field, status, where) => {
+    try {
+        // ตรวจสอบข้อมูลก่อนส่งเพื่อป้องกันการโจมตี SQL Injection
+        if (!table || !field || !status || !where) {
+            console.error("Missing required fields");
+            return null;
+        }
+
+        const response = await Axios.post(`${process.env.REACT_APP_API_URL}/api/update-status`, {
+            table: table,
+            field: field,
+            status: status,
+            where: where
+        }, {
+            headers: { key: 'SAMUI1WoV5UbrGPq5iOXS2SS4ODR9999' }
+        });
+
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching data:", error);
+        return null;
+    }
+};
+
+// Update Qty ในข้อมูล
+const updateQty = async (table, updateCode, where) => {
+    try {
+        const response = await Axios.post(`${process.env.REACT_APP_API_URL}/api/update-qty`, {
+            table: table,
+            update_code: updateCode,
+            where: where
+        }, {
+            headers: { key: 'SAMUI1WoV5UbrGPq5iOXS2SS4ODR9999' }
+        });
+
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching data:", error);
+        return null;
+    }
 };
 
 export {
     getAllData,
+    getByDocId,
     getCompany,
     getDocType,
     getTransType,
@@ -390,4 +452,6 @@ export {
     getMaxPayNo,
     getMaxRecNo,
     getCreateDateTime,
+    updateStatusByNo,
+    updateQty,
 };

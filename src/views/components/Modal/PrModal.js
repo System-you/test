@@ -56,16 +56,26 @@ const PrModal = ({ showPrModal, handlePrClose, prDataList, onRowSelectPr }) => {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {filteredPrDataList.map((pr, index) => (
-                                            <tr key={pr.Doc_Id || index + 1}
-                                                onClick={() => onRowSelectPr(pr)}
-                                                style={{ cursor: 'pointer' }}>
-                                                <td className="text-center">{pr.Doc_No}</td>
-                                                <td className="text-left">{pr.AP_Name}</td>
-                                                <td className="text-left">{pr.Doc_Remark1}</td>
-                                                <td className="text-end">{formatCurrency(pr.NetTotal)}</td>
+                                        {filteredPrDataList && filteredPrDataList.length > 0 ? (
+                                            filteredPrDataList.map((pr, index) => (
+                                                <tr key={pr.Doc_Id || index + 1}
+                                                    onClick={() => onRowSelectPr(pr)}
+                                                    style={{ cursor: 'pointer' }}>
+                                                    <td className="text-center">{pr.Doc_No}</td>
+                                                    <td className="text-left">{pr.AP_Name}</td>
+                                                    <td className="text-left">{pr.Doc_Remark1}</td>
+                                                    <td className="text-end">{formatCurrency(pr.NetTotal)}</td>
+                                                </tr>
+                                            ))
+                                        ) : (
+                                            <tr>
+                                                <td colSpan="10">
+                                                    <center>
+                                                        <h5>ไม่พบข้อมูล</h5>
+                                                    </center>
+                                                </td>
                                             </tr>
-                                        ))}
+                                        )}
                                     </tbody>
                                 </table>
                             </div>

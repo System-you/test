@@ -37,17 +37,18 @@ const ItemTable = ({
                         <table id="basic-datatables" className="table table-striped table-hover">
                             <thead className="thead-dark">
                                 <tr>
-                                    <th className="text-center" style={{ width: '1%' }}>#</th>
-                                    <th className="text-center" style={{ width: '9%' }}>รหัสสินค้า</th>
-                                    <th className="text-center" style={{ width: '20%' }}>ชื่อสินค้า</th>
-                                    <th className="text-center" style={{ width: '9%' }}>จำนวน</th>
-                                    <th className="text-center" style={{ width: '9%' }}>หน่วย</th>
-                                    <th className="text-center" style={{ width: '10%' }}>ราคาต่อหน่วย</th>
+                                    <th className="text-center" style={{ width: '2%' }}>#</th>
+                                    <th className="text-center" style={{ width: '10%' }}>รหัสสินค้า</th>
+                                    <th className="text-center" style={{ width: '16%' }}>ชื่อสินค้า</th>
+                                    <th className="text-center" style={{ width: '8%' }}>จำนวนรับ</th>
+                                    <th className="text-center" style={{ width: '8%' }}>จำนวนค้างรับ</th>
+                                    <th className="text-center" style={{ width: '6%' }}>หน่วย</th>
+                                    <th className="text-center" style={{ width: '8%' }}>ราคาต่อหน่วย</th>
                                     <th className="text-center" style={{ width: '8%' }}>ส่วนลด</th>
-                                    <th className="text-center" style={{ width: '8%' }}>%</th>
-                                    <th className="text-center" style={{ width: '12%' }}>จำนวนเงินรวม</th>
-                                    <th className="text-center" style={{ width: '13%' }}>คลังสินค้า</th>
-                                    <th className="text-center" style={{ width: '1%' }}>ลบ</th>
+                                    <th className="text-center" style={{ width: '5%' }}>%</th>
+                                    <th className="text-center" style={{ width: '10%' }}>จำนวนเงินรวม</th>
+                                    <th className="text-center" style={{ width: '16%' }}>คลังสินค้า</th>
+                                    <th className="text-center" style={{ width: '3%' }}>ลบ</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -78,7 +79,6 @@ const ItemTable = ({
                                                 className="form-control text-center"
                                                 value={item.itemQty || 0}
                                                 onChange={(e) => handleChangeDetail(index, 'itemQty', e.target.value)}
-                                                // disabled={disabled}
                                                 disabled={window.location.pathname === '/product-receipt'
                                                     ? (!disabled ? true : false)
                                                     : disabled}
@@ -158,6 +158,262 @@ const ItemTable = ({
                 </div>
             </div>
         </div>
+        // <div className="col-12">
+        //     <div className="table100 ver1 m-b-110">
+        //         <div className="table100-head">
+        //             <table>
+        //                 <thead>
+        //                     <tr className="row100 head">
+        //                         {/* <th className="cell100 column1">Class name</th>
+        //                         <th className="cell100 column2">Type</th>
+        //                         <th className="cell100 column3">Hours</th>
+        //                         <th className="cell100 column4">Trainer</th>
+        //                         <th className="cell100 column5">Spots</th> */}
+
+        //                         <th className="cell100">#</th>
+        //                         <th className="cell100">รหัสสินค้า</th>
+        //                         <th className="cell100">ชื่อสินค้า</th>
+        //                         <th className="cell100">จำนวน</th>
+        //                         <th className="cell100">หน่วย</th>
+        //                         <th className="cell100">ราคาต่อหน่วย</th>
+        //                         <th className="cell100">ส่วนลด</th>
+        //                         <th className="cell100">%</th>
+        //                         <th className="cell100">จำนวนเงินรวม</th>
+        //                         <th className="cell100">คลังสินค้า</th>
+        //                         <th className="cell100">ลบ</th>
+        //                     </tr>
+        //                 </thead>
+        //             </table>
+        //         </div>
+        //         <div className="table100-body js-pscroll ps ps--active-y">
+        //             <table>
+        //                 <tbody>
+        //                     <tr className="row100 body">
+        //                         <td className="cell100">1</td>
+        //                         <td className="cell100">Like a butterfly</td>
+        //                         <td className="cell100">Boxing</td>
+        //                         <td className="cell100">9:00 AM - 11:00 AM</td>
+        //                         <td className="cell100">Aaron Chapman</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                     </tr>
+        //                     <tr className="row100 body">
+        //                         <td className="cell100">1</td>
+        //                         <td className="cell100">Like a butterfly</td>
+        //                         <td className="cell100">Boxing</td>
+        //                         <td className="cell100">9:00 AM - 11:00 AM</td>
+        //                         <td className="cell100">Aaron Chapman</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                     </tr>
+        //                     <tr className="row100 body">
+        //                         <td className="cell100">1</td>
+        //                         <td className="cell100">Like a butterfly</td>
+        //                         <td className="cell100">Boxing</td>
+        //                         <td className="cell100">9:00 AM - 11:00 AM</td>
+        //                         <td className="cell100">Aaron Chapman</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                     </tr>
+        //                     <tr className="row100 body">
+        //                         <td className="cell100">1</td>
+        //                         <td className="cell100">Like a butterfly</td>
+        //                         <td className="cell100">Boxing</td>
+        //                         <td className="cell100">9:00 AM - 11:00 AM</td>
+        //                         <td className="cell100">Aaron Chapman</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                     </tr>
+        //                     <tr className="row100 body">
+        //                         <td className="cell100">1</td>
+        //                         <td className="cell100">Like a butterfly</td>
+        //                         <td className="cell100">Boxing</td>
+        //                         <td className="cell100">9:00 AM - 11:00 AM</td>
+        //                         <td className="cell100">Aaron Chapman</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                     </tr>
+        //                     <tr className="row100 body">
+        //                         <td className="cell100">1</td>
+        //                         <td className="cell100">Like a butterfly</td>
+        //                         <td className="cell100">Boxing</td>
+        //                         <td className="cell100">9:00 AM - 11:00 AM</td>
+        //                         <td className="cell100">Aaron Chapman</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                     </tr>
+        //                     <tr className="row100 body">
+        //                         <td className="cell100">1</td>
+        //                         <td className="cell100">Like a butterfly</td>
+        //                         <td className="cell100">Boxing</td>
+        //                         <td className="cell100">9:00 AM - 11:00 AM</td>
+        //                         <td className="cell100">Aaron Chapman</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                     </tr>
+        //                     <tr className="row100 body">
+        //                         <td className="cell100">1</td>
+        //                         <td className="cell100">Like a butterfly</td>
+        //                         <td className="cell100">Boxing</td>
+        //                         <td className="cell100">9:00 AM - 11:00 AM</td>
+        //                         <td className="cell100">Aaron Chapman</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                     </tr>
+        //                     <tr className="row100 body">
+        //                         <td className="cell100">1</td>
+        //                         <td className="cell100">Like a butterfly</td>
+        //                         <td className="cell100">Boxing</td>
+        //                         <td className="cell100">9:00 AM - 11:00 AM</td>
+        //                         <td className="cell100">Aaron Chapman</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                     </tr>
+        //                     <tr className="row100 body">
+        //                         <td className="cell100">1</td>
+        //                         <td className="cell100">Like a butterfly</td>
+        //                         <td className="cell100">Boxing</td>
+        //                         <td className="cell100">9:00 AM - 11:00 AM</td>
+        //                         <td className="cell100">Aaron Chapman</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                     </tr>
+        //                     <tr className="row100 body">
+        //                         <td className="cell100">1</td>
+        //                         <td className="cell100">Like a butterfly</td>
+        //                         <td className="cell100">Boxing</td>
+        //                         <td className="cell100">9:00 AM - 11:00 AM</td>
+        //                         <td className="cell100">Aaron Chapman</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                     </tr>
+        //                     <tr className="row100 body">
+        //                         <td className="cell100">1</td>
+        //                         <td className="cell100">Like a butterfly</td>
+        //                         <td className="cell100">Boxing</td>
+        //                         <td className="cell100">9:00 AM - 11:00 AM</td>
+        //                         <td className="cell100">Aaron Chapman</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                     </tr>
+        //                     <tr className="row100 body">
+        //                         <td className="cell100">1</td>
+        //                         <td className="cell100">Like a butterfly</td>
+        //                         <td className="cell100">Boxing</td>
+        //                         <td className="cell100">9:00 AM - 11:00 AM</td>
+        //                         <td className="cell100">Aaron Chapman</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                     </tr>
+        //                     <tr className="row100 body">
+        //                         <td className="cell100">1</td>
+        //                         <td className="cell100">Like a butterfly</td>
+        //                         <td className="cell100">Boxing</td>
+        //                         <td className="cell100">9:00 AM - 11:00 AM</td>
+        //                         <td className="cell100">Aaron Chapman</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                     </tr>
+        //                     <tr className="row100 body">
+        //                         <td className="cell100">1</td>
+        //                         <td className="cell100">Like a butterfly</td>
+        //                         <td className="cell100">Boxing</td>
+        //                         <td className="cell100">9:00 AM - 11:00 AM</td>
+        //                         <td className="cell100">Aaron Chapman</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                     </tr>
+        //                     <tr className="row100 body">
+        //                         <td className="cell100">1</td>
+        //                         <td className="cell100">Like a butterfly</td>
+        //                         <td className="cell100">Boxing</td>
+        //                         <td className="cell100">9:00 AM - 11:00 AM</td>
+        //                         <td className="cell100">Aaron Chapman</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                     </tr>
+        //                     <tr className="row100 body">
+        //                         <td className="cell100">1</td>
+        //                         <td className="cell100">Like a butterfly</td>
+        //                         <td className="cell100">Boxing</td>
+        //                         <td className="cell100">9:00 AM - 11:00 AM</td>
+        //                         <td className="cell100">Aaron Chapman</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                         <td className="cell100">xxxxxxxxxxx</td>
+        //                     </tr>
+        //                 </tbody>
+        //             </table>
+        //         </div>
+        //     </div>
+        // </div>
     );
 };
 

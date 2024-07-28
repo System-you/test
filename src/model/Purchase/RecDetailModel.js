@@ -5,6 +5,7 @@ export const recDetailModel = (id) => ({
     itemCode: null,
     itemName: null,
     itemQty: null,
+    itemQtyOld: null,
     itemUnit: null,
     itemPriceUnit: null,
     itemDiscount: null,

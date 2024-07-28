@@ -15,7 +15,7 @@ import { payMasterModel } from '../../../../model/Purchase/PayMasterModel';
 import { payDetailModel } from '../../../../model/Purchase/PayDetailModel';
 
 // Utils
-import { getAllData, getDocType, getTransType, getViewPoH, getViewAp, getViewItem, getAlert, formatCurrency, formatDateTime, formatThaiDate, formatThaiDateToDate, getMaxPayNo, getCreateDateTime }  from '../../../../utils/SamuiUtils';
+import { getAllData, getDocType, getTransType, getViewPoH, getViewAp, getViewItem, getAlert, formatCurrency, formatDateTime, formatThaiDate, formatThaiDateToDate, getMaxPayNo, getCreateDateTime } from '../../../../utils/SamuiUtils';
 
 function Form({ callInitialize, mode, name, maxDocNo }) {
     const [formMasterList, setFormMasterList] = useState([]);
@@ -200,9 +200,6 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                 // ถ้าไม่มีข้อมูลใน masterList ก็ใช้ newMaxDoc ที่สร้างขึ้นตอนแรก
             }
 
-            // เรียกวันที่ปัจจุบันใหม่อีกรอบ
-            const createDateTime = getCreateDateTime();
-
             // ข้อมูลหลักที่จะส่งไปยัง API
             const formMasterData = {
                 pay_no: newMaxDoc,
@@ -222,7 +219,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                 ap_id: parseInt(formMasterList.apID, 10),
                 ap_code: formMasterList.apCode,
                 action_hold: parseInt("0", 10),
-                discount_value: parseFloat(formMasterList.discountValue),
+                discount_value: parseFloat(formMasterList.discountValue || 0.00),
                 discount_value_type: parseInt(selectedDiscountValueType, 10),
                 discount_cash: parseFloat("0.00"),
                 discount_cash_type: formMasterList.discountCashType,
@@ -236,7 +233,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                 credit_term_2_remark: formMasterList.creditTerm2Remark,
                 acc_code: "0000",
                 emp_name: formMasterList.empName,
-                created_date: formatThaiDateToDate(createDateTime),
+                created_date: formatThaiDateToDate(formMasterList.createdDate),
                 created_by_name: window.localStorage.getItem('name'),
                 created_by_id: "1",
                 update_date: formMasterList.updateDate,
@@ -649,8 +646,8 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             type="text"
                             className="form-control input-spacing"
                             name="createdDate"
-                            value={formMasterList.createdDate || ''}
-                            onChange={handleChangeMaster}
+                            value={getCreateDateTime()}
+                            // onChange={handleChangeMaster}
                             disabled={true} />
                     </div>
                 </div>

@@ -1,0 +1,122 @@
+label {
+    width: 200px;
+}
+
+input {
+    width: 200px;
+}
+
+.input-spacing {
+    width: 100%;
+    /* ทำให้ input มีขนาดเต็ม */
+    min-width: 150px;
+    /* กำหนดขนาดขั้นต่ำของ input */
+    border: 1px solid #00000025 !important;
+}
+
+.d-flex {
+    display: flex;
+    align-items: center;
+}
+
+.mr-2 {
+    margin-right: 0.5rem;
+}
+
+.border-right {
+    border-right: 1px solid #000;
+    /* สีของเส้นคั่น */
+    padding-right: 15px;
+    /* พื้นที่ว่างด้านขวาของเส้นคั่น */
+}
+
+.custom-button {
+    background-color: #EF6C00;
+    color: white;
+    border: none;
+    /* ถ้าต้องการให้ไม่มีกรอบ */
+}
+
+.custom-button:disabled {
+    background-color: #EF6C00;
+    color: white;
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.table {
+    width: 100%;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    border: 1px solid #00000025 !important;
+    table-layout: auto;
+    border-collapse: collapse;
+}
+
+.table th,
+.table td {
+    border: 1px solid #00000025 !important;
+    /* เส้นขอบสำหรับ th และ td เป็นสีดำ */
+}
+
+.table th {
+    background-color: #f8f9fa;
+    font-weight: bold;
+    overflow: hidden;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+.table-hover tbody tr:hover {
+    background-color: #f1f1f1;
+}
+
+.radio-inline {
+    display: flex;
+    gap: 5px;
+    /* เพิ่มช่องว่างระหว่าง radio และ label */
+}
+
+input {
+    position: relative;
+    width: 150px;
+    height: 20px;
+    color: white;
+}
+
+input:before {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    content: attr(data-date);
+    display: inline-block;
+    color: black;
+}
+
+.table-responsive {
+    position: relative;
+    max-height: 660px;
+    /* กำหนดความสูงสูงสุด */
+    overflow-y: auto;
+    /* ทำให้ Scroll bar แสดงเฉพาะแนวตั้ง */
+}
+
+table a:link {
+    color: #666;
+    font-weight: bold;
+    text-decoration: none;
+}
+
+table a:visited {
+    color: #999999;
+    font-weight: bold;
+    text-decoration: none;
+}
+
+table a:active,
+table a:hover {
+    color: #bd5a35;
+    text-decoration: underline;
+}

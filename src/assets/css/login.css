@@ -1,0 +1,32 @@
+.card {
+    width: 100%;
+    max-width: 500px;
+}
+
+.form-check-input:checked {
+    background-color: #EF6C00;
+    /* เปลี่ยนสีพื้นหลังเมื่อเลือก */
+    border-color: #EF6C00;
+    /* เปลี่ยนสีกรอบเมื่อเลือก */
+}
+
+.form-check-input:checked:hover {
+    background-color: #EF6C00;
+    /* เปลี่ยนสีเมื่อ hover */
+    border-color: #EF6C00;
+    /* เปลี่ยนสีกรอบเมื่อ hover */
+}
+
+.custom-button {
+    background-color: #EF6C00;
+    color: white;
+    border: none;
+    /* ถ้าต้องการให้ไม่มีกรอบ */
+}
+
+.custom-button:disabled {
+    background-color: #EF6C00;
+    color: white;
+    cursor: not-allowed;
+    opacity: 0.5;
+}

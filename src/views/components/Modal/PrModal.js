@@ -51,7 +51,7 @@ const PrModal = ({ showPrModal, handlePrClose, prDataList, onRowSelectPr }) => {
                                         <tr>
                                             <th className="text-center" style={{ width: '15%' }}>เลขที่เอกสาร (PR)</th>
                                             <th className="text-center" style={{ width: '40%' }}>AP_NAME</th>
-                                            <th className="text-center" style={{ width: '30%' }}>รายละเอียดเอกสาร</th>
+                                            <th className="text-center" style={{ width: '35%' }}>รายละเอียดเอกสาร</th>
                                             <th className="text-center" style={{ width: '10%' }}>ราคารวม</th>
                                         </tr>
                                     </thead>

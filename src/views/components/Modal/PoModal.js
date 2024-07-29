@@ -51,7 +51,7 @@ const PoModal = ({ showPoModal, handlePoClose, poDataList, onRowSelectPo }) => {
                                         <tr>
                                             <th className="text-center" style={{ width: '15%' }}>เลขที่เอกสาร (PO)</th>
                                             <th className="text-center" style={{ width: '40%' }}>AP_NAME</th>
-                                            <th className="text-center" style={{ width: '30%' }}>รายละเอียดเอกสาร</th>
+                                            <th className="text-center" style={{ width: '35%' }}>รายละเอียดเอกสาร</th>
                                             <th className="text-center" style={{ width: '10%' }}>ราคารวม</th>
                                         </tr>
                                     </thead>
@@ -95,7 +95,5 @@ const PoModal = ({ showPoModal, handlePoClose, poDataList, onRowSelectPo }) => {
         </>
     );
 };
-
-
 
 export default PoModal;

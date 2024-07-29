@@ -2,6 +2,7 @@ export const payDetailModel = (id) => ({
     id: id,
     line: null,
     itemId: null,
+    recNo: null,
     itemCode: null,
     itemName: null,
     itemQty: null,

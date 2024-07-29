@@ -4,9 +4,9 @@ import './../../../../assets/css/purchase/form.css';
 
 // Components
 import Breadcrumbs from '../../Breadcrumbs';
-import PoModal from '../../Modal/PoModal';
+import RecModal from '../../Modal/RecModal';
 import ApModal from '../../Modal/ApModal';
-import ItemTable from '../../Content/ItemTable';
+import ItemModal from '../../Modal/ItemModal';
 import Summary from '../../Footer/Summary';
 import FormAction from '../../Actions/FormAction';
 
@@ -15,14 +15,27 @@ import { payMasterModel } from '../../../../model/Purchase/PayMasterModel';
 import { payDetailModel } from '../../../../model/Purchase/PayDetailModel';
 
 // Utils
-import { getAllData, getDocType, getTransType, getViewPoH, getViewAp, getViewItem, getAlert, formatCurrency, formatDateTime, formatThaiDate, formatThaiDateToDate, getMaxPayNo, getCreateDateTime } from '../../../../utils/SamuiUtils';
+import {
+    getAllData,
+    getDocType,
+    getTransType,
+    getViewAp,
+    getViewItem,
+    getAlert,
+    formatCurrency,
+    formatDateTime,
+    formatThaiDate,
+    formatThaiDateToDate,
+    getMaxPayNo,
+    getCreateDateTime
+} from '../../../../utils/SamuiUtils';
 
 function Form({ callInitialize, mode, name, maxDocNo }) {
     const [formMasterList, setFormMasterList] = useState([]);
     const [formDetailList, setFormDetailList] = useState([]);
     const [tbDocType, setTbDocType] = useState([]);
     const [tbTransType, setTbTransType] = useState([]);
-    const [poDataList, setPoDataList] = useState([]);
+    const [recDataList, setRecDataList] = useState([]);
     const [apDataList, setApDataList] = useState([]);
     const [itemDataList, setItemDataList] = useState([]);
 
@@ -53,9 +66,9 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                 setTbTransType(transTypeList);
             }
 
-            const poDataList = await getViewPoH();
-            if (poDataList && poDataList.length > 0) {
-                setPoDataList(poDataList);
+            const recDataList = await getAllData("API_0301_REC_H", "ORDER BY Rec_No DESC");
+            if (recDataList && recDataList.length > 0) {
+                setRecDataList(recDataList);
             }
 
             const apDataList = await getViewAp();
@@ -253,62 +266,63 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
             };
 
             // For Log PAY_H
-            // console.log("formMasterData : ", formMasterData);
+            console.log("formMasterData : ", formMasterData);
+            getAlert("FAILED", "อยู่ในระหว่างการปรับปรุง ยังไม่สามารถบันทึกได้");
 
             // ส่งข้อมูลหลักไปยัง API
-            const response = await Axios.post(`${process.env.REACT_APP_API_URL}/api/create-pay-h`, formMasterData, {
-                headers: { key: process.env.REACT_APP_ANALYTICS_KEY }
-            });
+            // const response = await Axios.post(`${process.env.REACT_APP_API_URL}/api/create-pay-h`, formMasterData, {
+            //     headers: { key: process.env.REACT_APP_ANALYTICS_KEY }
+            // });
 
             // ตรวจสอบสถานะการตอบกลับ
-            if (response.data.status === 'OK') {
-                const getPayIdResponse = await Axios.post(`${process.env.REACT_APP_API_URL}/api/get-by-pay-no`, {
-                    table: 'PAY_H',
-                    pay_no: formMasterData.pay_no
-                }, {
-                    headers: { key: process.env.REACT_APP_ANALYTICS_KEY }
-                });
+            // if (response.data.status === 'OK') {
+            //     const getPayIdResponse = await Axios.post(`${process.env.REACT_APP_API_URL}/api/get-by-pay-no`, {
+            //         table: 'PAY_H',
+            //         pay_no: formMasterData.pay_no
+            //     }, {
+            //         headers: { key: process.env.REACT_APP_ANALYTICS_KEY }
+            //     });
 
-                // ส่งข้อมูลรายละเอียดหากพบ Pay_Id
-                if (getPayIdResponse && getPayIdResponse.data.length > 0) {
-                    const payId = parseInt(getPayIdResponse.data[0].Pay_Id, 10);
-                    let index = 1;
+            //     // ส่งข้อมูลรายละเอียดหากพบ Pay_Id
+            //     if (getPayIdResponse && getPayIdResponse.data.length > 0) {
+            //         const payId = parseInt(getPayIdResponse.data[0].Pay_Id, 10);
+            //         let index = 1;
 
-                    const detailPromises = formDetailList.map(async (item) => {
-                        const formDetailData = {
-                            pay_id: parseInt(payId, 10),
-                            line: index,
-                            item_id: item.itemId,
-                            item_code: item.itemCode,
-                            item_name: item.itemName,
-                            item_qty: item.itemQty,
-                            item_unit: item.itemUnit,
-                            item_price_unit: item.itemPriceUnit,
-                            item_discount: item.itemDiscount,
-                            item_distype: item.itemDisType === '1' ? parseInt("1", 10) : parseInt("2", 10),
-                            item_total: item.itemTotal,
-                            item_status: item.itemStatus === 'Y' ? 1 : 0,
-                            wh_id: null,
-                            zone_id: parseInt("1", 10),
-                            lt_id: parseInt("1", 10),
-                            ds_seq: formatDateTime(new Date())
-                        };
-                        index++;
+            //         const detailPromises = formDetailList.map(async (item) => {
+            //             const formDetailData = {
+            //                 pay_id: parseInt(payId, 10),
+            //                 line: index,
+            //                 item_id: item.itemId,
+            //                 item_code: item.itemCode,
+            //                 item_name: item.itemName,
+            //                 item_qty: item.itemQty,
+            //                 item_unit: item.itemUnit,
+            //                 item_price_unit: item.itemPriceUnit,
+            //                 item_discount: item.itemDiscount,
+            //                 item_distype: item.itemDisType === '1' ? parseInt("1", 10) : parseInt("2", 10),
+            //                 item_total: item.itemTotal,
+            //                 item_status: item.itemStatus === 'Y' ? 1 : 0,
+            //                 wh_id: null,
+            //                 zone_id: parseInt("1", 10),
+            //                 lt_id: parseInt("1", 10),
+            //                 ds_seq: formatDateTime(new Date())
+            //             };
+            //             index++;
 
-                        // For Log PAY_D
-                        // console.log("formDetailData : ", formDetailData);
+            //             // For Log PAY_D
+            //             // console.log("formDetailData : ", formDetailData);
 
-                        return Axios.post(`${process.env.REACT_APP_API_URL}/api/create-pay-d`, formDetailData, {
-                            headers: { key: process.env.REACT_APP_ANALYTICS_KEY }
-                        });
-                    });
+            //             return Axios.post(`${process.env.REACT_APP_API_URL}/api/create-pay-d`, formDetailData, {
+            //                 headers: { key: process.env.REACT_APP_ANALYTICS_KEY }
+            //             });
+            //         });
 
-                    await Promise.all(detailPromises);
-                }
+            //         await Promise.all(detailPromises);
+            //     }
 
-                callInitialize();
-                getAlert(response.data.status, response.data.message);
-            }
+            //     callInitialize();
+            //     getAlert(response.data.status, response.data.message);
+            // }
         } catch (error) {
             getAlert("FAILED", error.response?.data?.message || error.message);
         }
@@ -376,27 +390,133 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
         setDocTypeRef(value);
     };
 
-    // SET PO
-    const [showPoModal, setShowPoModal] = useState(false);
-    const handlePoShow = () => setShowPoModal(true);
-    const handlePoClose = () => setShowPoModal(false);
-    const onRowSelectPo = async (poSelected) => {
+    // SET REC
+    const [showRecModal, setShowRecModal] = useState(false);
+    const handleRecShow = () => setShowRecModal(true);
+    const handleRecClose = () => setShowRecModal(false);
+    // const onRowSelectRec = async (recSelected) => {
+    //     try {
+    //         // เคลียร์ค่าใน formMasterList และ formDetailList
+    //         setFormMasterList({});
+    //         setFormDetailList([]);
+
+    //         // ค้นหาข้อมูลที่ตรงกับ recSelected.Rec_No ใน REC_H และ AP_ID ใน apDataList
+    //         const [getAllRecH, fromViewAp] = await Promise.all([
+    //             getAllData('API_0301_REC_H', 'ORDER BY Rec_No DESC'),
+    //             apDataList.find(ap => ap.AP_Id === recSelected.AP_ID)
+    //         ]);
+
+    //         const fromViewRecH = getAllRecH.find(po => po.Rec_No === recSelected.Rec_No);
+
+    //         if (!fromViewRecH || !fromViewAp) {
+    //             throw new Error("Data not found");
+    //         }
+
+    //         // ฟังก์ชันเพื่อสร้างโมเดลใหม่สำหรับแต่ละแถวและคำนวณ itemTotal
+    //         const createNewRow = (index, itemSelected) => {
+    //             const itemQty = Number(itemSelected.Item_Qty) || 0;
+    //             const itemPriceUnit = Number(itemSelected.Item_Price_Unit) || 0;
+    //             const itemDiscount = Number(itemSelected.Item_Discount) || 0;
+    //             let itemTotal = itemQty * itemPriceUnit;
+
+    //             if (itemSelected.Item_DisType === 2) {
+    //                 itemTotal -= (itemDiscount / 100) * itemTotal; // ลดตามเปอร์เซ็นต์
+    //             } else {
+    //                 itemTotal -= itemDiscount; // ลดตามจำนวนเงิน
+    //             }
+
+    //             return {
+    //                 ...payDetailModel(index + 1),
+    //                 line: itemSelected.Line,
+    //                 itemId: itemSelected.Item_Id,
+    //                 recNo: recSelected.Rec_No,
+    //                 itemCode: itemSelected.Item_Code,
+    //                 itemName: itemSelected.Item_Name,
+    //                 itemQty,
+    //                 itemUnit: itemSelected.Item_Unit,
+    //                 itemPriceUnit,
+    //                 itemDiscount,
+    //                 itemDisType: String(itemSelected.Item_DisType),
+    //                 itemTotal,
+    //                 itemStatus: itemSelected.Item_Status,
+    //                 whId: itemSelected.WH_ID,
+    //                 whName: itemSelected.WH_Name,
+    //                 zoneId: itemSelected.Zone_ID,
+    //                 ltId: itemSelected.LT_ID,
+    //                 dsSeq: itemSelected.DS_SEQ,
+    //             };
+    //         };
+
+    //         const getAllItem = await getAllData('API_0302_REC_D', 'ORDER BY Line ASC');
+    //         const filterItem = getAllItem.filter(item => item.Rec_No === recSelected.Rec_No);
+
+    //         if (filterItem.length > 0) {
+    //             const newFormDetails = filterItem.map((item, index) => createNewRow(formDetailList.length + index, item));
+
+    //             setFormDetailList(newFormDetails);
+
+    //             const firstItem = filterItem[0];
+
+    //             setFormMasterList({
+    //                 refDocID: fromViewRecH.Rec_Id,
+    //                 // refDoc: recSelected.Rec_No,
+    //                 refDocDate: formatThaiDate(recSelected.Rec_Date),
+    //                 docDate: formatThaiDate(fromViewRecH.Rec_Date),
+    //                 docDueDate: formatThaiDate(fromViewRecH.Rec_DueDate),
+    //                 docRemark1: fromViewRecH.Doc_Remark1,
+    //                 docRemark2: fromViewRecH.Doc_Remark2,
+    //                 docType: fromViewRecH.Doc_Type,
+    //                 docFor: fromViewRecH.Doc_For,
+    //                 transportType: fromViewRecH.Transport_Type,
+    //                 discountValue: fromViewRecH.Discount_Value,
+    //                 creditTerm: fromViewRecH.CreditTerm,
+    //                 apID: fromViewRecH.AP_ID,
+    //                 apCode: firstItem.AP_Code,
+    //                 apName: firstItem.AP_Name,
+    //                 apAdd1: firstItem.AP_Add1,
+    //                 apAdd2: firstItem.AP_Add2,
+    //                 apAdd3: firstItem.AP_Add3,
+    //                 apProvince: firstItem.AP_Province,
+    //                 apZipcode: firstItem.AP_Zipcode,
+    //                 apTaxNo: firstItem.AP_TaxNo,
+    //                 createdByName: window.localStorage.getItem('name'),
+    //                 updateDate: fromViewRecH.Update_By_Name,
+    //                 updateByName: fromViewRecH.Update_Date,
+    //             });
+
+    //             setIsVatChecked(fromViewRecH.IsVat === 1 ? true : false);
+
+    //             const discountValueType = Number(fromViewRecH.Discount_Value_Type);
+    //             if (!isNaN(discountValueType)) {
+    //                 setSelectedDiscountValueType(discountValueType.toString());
+    //             }
+
+    //         } else {
+    //             getAlert('FAILED', `ไม่พบข้อมูลที่ตรงกับเลขที่เอกสาร ${recSelected.Doc_No} กรุณาตรวจสอบและลองอีกครั้ง`);
+    //         }
+
+    //         handleRecClose(); // ปิด modal หลังจากเลือก
+    //     } catch (error) {
+    //         getAlert("FAILED", error.message || error);
+    //     }
+    // };
+    const onRowSelectRec = async (recSelected) => {
         try {
             // เคลียร์ค่าใน formMasterList และ formDetailList
             setFormMasterList({});
             setFormDetailList([]);
 
-            // ค้นหาข้อมูลที่ตรงกับ poSelected.Doc_No ใน PR_H และ AP_ID ใน apDataList
-            const [getAllPoH, fromViewAp] = await Promise.all([
-                getAllData('View_PO_H', 'ORDER BY Doc_No DESC'),
-                apDataList.find(ap => ap.AP_Id === poSelected.AP_ID)
+            // ค้นหาข้อมูลที่ตรงกับ recSelected.Rec_No ใน REC_H และ AP_ID ใน apDataList
+            const [getAllRecH, getAllItem] = await Promise.all([
+                getAllData('API_0301_REC_H', 'ORDER BY Rec_No DESC'),
+                getAllData('API_0302_REC_D', 'ORDER BY Line ASC')
             ]);
 
-            const fromViewPrH = getAllPoH.find(po => po.Doc_No === poSelected.Doc_No);
+            // ใช้ Set เพื่อหลีกเลี่ยงการค้นหาซ้ำ
+            const recNoSet = new Set(recSelected.map(rec => rec.Rec_No));
 
-            if (!fromViewPrH || !fromViewAp) {
-                throw new Error("Data not found");
-            }
+            // แปลง recNoSet เป็น Array
+            const recNoArray = Array.from(recNoSet);
 
             // ฟังก์ชันเพื่อสร้างโมเดลใหม่สำหรับแต่ละแถวและคำนวณ itemTotal
             const createNewRow = (index, itemSelected) => {
@@ -415,6 +535,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                     ...payDetailModel(index + 1),
                     line: itemSelected.Line,
                     itemId: itemSelected.Item_Id,
+                    recNo: itemSelected.Rec_No,
                     itemCode: itemSelected.Item_Code,
                     itemName: itemSelected.Item_Name,
                     itemQty,
@@ -432,54 +553,88 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                 };
             };
 
-            const getAllItem = await getAllData('View_PO_D', 'ORDER BY Line ASC');
-            const filterItem = getAllItem.filter(item => item.Doc_No === poSelected.Doc_No);
+            // สร้างฟังก์ชันสำหรับการดึงข้อมูลของแต่ละ Rec_No
+            const fetchDetailsForRecNo = async (recNo) => {
+                const filterItem = getAllItem.filter(item => item.Rec_No === recNo);
+                const fromViewRecH = getAllRecH.find(po => po.Rec_No === recNo);
 
-            if (filterItem.length > 0) {
-                const newFormDetails = filterItem.map((item, index) => createNewRow(formDetailList.length + index, item));
-
-                setFormDetailList(newFormDetails);
-
-                const firstItem = filterItem[0];
-
-                setFormMasterList({
-                    refDocID: fromViewPrH.Doc_Id,
-                    refDoc: poSelected.Doc_No,
-                    refDocDate: formatThaiDate(poSelected.Doc_Date),
-                    docDate: formatThaiDate(fromViewPrH.Doc_Date),
-                    docDueDate: formatThaiDate(fromViewPrH.Doc_DueDate),
-                    docRemark1: fromViewPrH.Doc_Remark1,
-                    docRemark2: fromViewPrH.Doc_Remark2,
-                    docType: fromViewPrH.Doc_Type,
-                    docFor: fromViewPrH.Doc_For,
-                    transportType: fromViewPrH.Transport_Type,
-                    discountValue: fromViewPrH.Discount_Value,
-                    creditTerm: fromViewPrH.CreditTerm,
-                    apID: fromViewPrH.AP_ID,
-                    apCode: firstItem.AP_Code,
-                    apName: firstItem.AP_Name,
-                    apAdd1: firstItem.AP_Add1,
-                    apAdd2: firstItem.AP_Add2,
-                    apAdd3: firstItem.AP_Add3,
-                    apProvince: firstItem.AP_Province,
-                    apZipcode: firstItem.AP_Zipcode,
-                    apTaxNo: firstItem.AP_TaxNo
-                });
-
-                setIsVatChecked(fromViewPrH.IsVat === 1 ? true : false);
-
-                const discountValueType = Number(fromViewPrH.Discount_Value_Type);
-                if (!isNaN(discountValueType)) {
-                    setSelectedDiscountValueType(discountValueType.toString());
+                if (!fromViewRecH) {
+                    throw new Error(`ไม่พบข้อมูล REC_H สำหรับ Rec_No: ${recNo}`);
                 }
 
-            } else {
-                getAlert('FAILED', `ไม่พบข้อมูลที่ตรงกับเลขที่เอกสาร ${poSelected.Doc_No} กรุณาตรวจสอบและลองอีกครั้ง`);
+                // การสร้างรายละเอียด
+                if (filterItem.length > 0) {
+                    const newFormDetails = filterItem.map((item, index) => createNewRow(index, item));
+                    return { fromViewRecH, newFormDetails };
+                } else {
+                    throw new Error(`ไม่พบข้อมูล REC_D สำหรับ Rec_No: ${recNo}`);
+                }
+            };
+
+            // ดึงข้อมูลสำหรับ Rec_No ทั้งหมดใน recSelected
+            const results = await Promise.all(recNoArray.map(recNo => fetchDetailsForRecNo(recNo)));
+
+            // รวมข้อมูลทั้งหมด
+            const allDetails = results.flatMap(result => result.newFormDetails);
+            const firstItem = allDetails[0];
+
+            // ตั้งค่า formDetailList และ formMasterList
+            setFormDetailList(allDetails);
+
+            setFormMasterList({
+                refDocID: results[0].fromViewRecH.Rec_Id,
+                refDocDate: formatThaiDate(recSelected[0].Rec_Date),
+                docDate: formatThaiDate(results[0].fromViewRecH.Rec_Date),
+                docDueDate: formatThaiDate(results[0].fromViewRecH.Rec_DueDate),
+                docRemark1: results[0].fromViewRecH.Doc_Remark1,
+                docRemark2: results[0].fromViewRecH.Doc_Remark2,
+                docType: results[0].fromViewRecH.Doc_Type,
+                docFor: results[0].fromViewRecH.Doc_For,
+                transportType: results[0].fromViewRecH.Transport_Type,
+                // discountValue: results[0].fromViewRecH.Discount_Value,
+                // creditTerm: results[0].fromViewRecH.CreditTerm,
+                apID: results[0].fromViewRecH.AP_ID,
+                apCode: firstItem.itemCode,
+                apName: firstItem.itemName,
+                apAdd1: firstItem.itemAdd1,
+                apAdd2: firstItem.itemAdd2,
+                apAdd3: firstItem.itemAdd3,
+                apProvince: firstItem.itemProvince,
+                apZipcode: firstItem.itemZipcode,
+                apTaxNo: firstItem.itemTaxNo,
+                createdByName: window.localStorage.getItem('name'),
+                updateDate: results[0].fromViewRecH.Update_By_Name,
+                updateByName: results[0].fromViewRecH.Update_Date,
+            });
+
+            setIsVatChecked(results[0].fromViewRecH.IsVat === 1 ? true : false);
+
+            const discountValueType = Number(results[0].fromViewRecH.Discount_Value_Type);
+            if (!isNaN(discountValueType)) {
+                setSelectedDiscountValueType(discountValueType.toString());
             }
 
-            handlePoClose(); // ปิด modal หลังจากเลือก
+            handleRecClose(); // ปิด modal หลังจากเลือก
         } catch (error) {
             getAlert("FAILED", error.message || error);
+        }
+    };
+    const onConfirmRecSelection = async (recSelected) => {
+        try {
+            if (!recSelected[0]) {
+                getAlert("FAILED", "ท่านยังไม่ได้เลือกใบรับสินค้า");
+                return;
+            }
+
+            handleRecClose();
+            console.debug("Selected Receipts:", recSelected);
+            onRowSelectRec(recSelected)
+
+            // แจ้งเตือนผู้ใช้ว่าการเลือกสำเร็จ
+            getAlert("OK", "การเลือกใบรับสินค้าสำเร็จ");
+        } catch (error) {
+            console.error("Error in confirming receipt selection:", error);
+            getAlert("FAILED", "เกิดข้อผิดพลาดในการเลือกใบรับสินค้า");
         }
     };
 
@@ -661,7 +816,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             value={formMasterList.docRefType}
                             className="form-select form-control input-spacing"
                             onChange={(e) => handleChangePayType(e.target.value)}>
-                            <option value="1">จ่ายตาม PO</option>
+                            <option value="1">จ่ายตามใบรับสินค้า</option>
                             <option value="2">จ่ายเฉพาะรายการ</option>
                             <option value="3">จ่ายตามใบมัดจำ</option>
                         </select>
@@ -706,15 +861,16 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                                 onChange={handleChangeMaster}
                                 disabled={true}
                             />
-                            <button className="btn btn-outline-secondary" onClick={handlePoShow} hidden={docRefType === '1' ? false : true}>
+                            <button className="btn btn-outline-secondary" onClick={handleRecShow} hidden={docRefType === '1' ? false : true}>
                                 <i className="fas fa-search"></i>
                             </button>
                         </div>
-                        <PoModal
-                            showPoModal={showPoModal}
-                            handlePoClose={handlePoClose}
-                            poDataList={poDataList}
-                            onRowSelectPo={onRowSelectPo}
+                        <RecModal
+                            showRecModal={showRecModal}
+                            handleRecClose={handleRecClose}
+                            recDataList={recDataList}
+                            onRowSelectRec={onRowSelectRec}
+                            onConfirmRecSelection={onConfirmRecSelection}
                         />
                     </div>
                 </div>
@@ -920,7 +1076,160 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                 </div>
             </div>
             <div className="row mt-2">
-                <ItemTable
+
+                <div className="col-12">
+                    <div className="card">
+                        <div className="card-header d-flex justify-content-between align-items-center">
+                            <h4 className="card-title">รายละเอียดสินค้า</h4>
+                            <button
+                                type="button"
+                                className="btn custom-button"
+                                onClick={handleItemShow}
+                                hidden={docRefType === '1' ? true : false}>
+                                <i className="fa fa-plus"></i> เพิ่มรายการ
+                            </button>
+                        </div>
+                        <ItemModal
+                            showItemModal={showItemModal}
+                            handleItemClose={handleItemClose}
+                            itemDataList={itemDataList}
+                            onRowSelectItem={onRowSelectItem}
+                        />
+                        <div className="card-body">
+                            <div className="table-responsive">
+                                <table id="basic-datatables" className="table table-striped table-hover">
+                                    <thead className="thead-dark">
+                                        <tr>
+                                            <th className="text-center" style={{ width: '2%' }}>#</th>
+                                            <th hidden={docRefType === '1' ? false : true}
+                                                className="text-center" style={{ width: '8%' }}>
+                                                เลขที่เอกสาร (REC)
+                                            </th>
+                                            <th className="text-center" style={{ width: '10%' }}>รหัสสินค้า</th>
+                                            <th className="text-center" style={docRefType === '1' ?
+                                                { width: '16%' } : { width: '20%' }}>ชื่อสินค้า</th>
+                                            <th className="text-center" style={{ width: '8%' }}>จำนวน</th>
+                                            <th className="text-center" style={{ width: '6%' }}>หน่วย</th>
+                                            <th className="text-center" style={{ width: '8%' }}>ราคาต่อหน่วย</th>
+                                            <th className="text-center" style={{ width: '8%' }}>ส่วนลด</th>
+                                            <th className="text-center" style={{ width: '5%' }}>%</th>
+                                            <th className="text-center" style={{ width: '10%' }}>จำนวนเงินรวม</th>
+                                            <th className="text-center" style={docRefType === '1' ?
+                                                { width: '16%' } : { width: '20%' }}>คลังสินค้า</th>
+                                            <th className="text-center" style={{ width: '3%' }}>ลบ</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {formDetailList.map((item, index) => (
+                                            <tr key={item.itemId || index + 1}>
+                                                <td className="text-center">{index + 1}</td>
+                                                <td hidden={docRefType === '1' ? false : true}
+                                                    className="text-center">
+                                                    {item.recNo || ''}
+                                                </td>
+                                                <td className="text-center">
+                                                    <input
+                                                        type="text"
+                                                        className="form-control text-center"
+                                                        value={item.itemCode || ''}
+                                                        disabled={true}
+                                                        onChange={(e) => handleChangeDetail(index, 'itemCode', e.target.value)}
+                                                    />
+                                                </td>
+                                                <td className="text-center">
+                                                    <input
+                                                        type="text"
+                                                        className="form-control"
+                                                        value={item.itemName || ''}
+                                                        disabled={true}
+                                                        onChange={(e) => handleChangeDetail(index, 'itemName', e.target.value)}
+                                                    />
+                                                </td>
+                                                <td className="text-center">
+                                                    <input
+                                                        type="text"
+                                                        className="form-control text-center"
+                                                        value={item.itemQty || 0}
+                                                        onChange={(e) => handleChangeDetail(index, 'itemQty', e.target.value)}
+                                                        disabled={docRefType === '1' ? true : false}
+                                                    />
+                                                </td>
+                                                <td className="text-center">
+                                                    <input
+                                                        type="text"
+                                                        className="form-control"
+                                                        value={item.itemUnit || ''}
+                                                        disabled={true}
+                                                        onChange={(e) => handleChangeDetail(index, 'itemUnit', e.target.value)}
+                                                    />
+                                                </td>
+                                                <td className="text-center">
+                                                    <input
+                                                        type="text"
+                                                        className="form-control text-end"
+                                                        value={formatCurrency(item.itemPriceUnit || 0)}
+                                                        onChange={(e) => handleChangeDetail(index, 'itemPriceUnit', e.target.value)}
+                                                        disabled={docRefType === '1' ? true : false}
+                                                    />
+                                                </td>
+                                                <td className="text-center">
+                                                    <input
+                                                        type="text"
+                                                        className="form-control text-end"
+                                                        value={formatCurrency(item.itemDiscount || 0)}
+                                                        onChange={(e) => handleChangeDetail(index, 'itemDiscount', e.target.value)}
+                                                        disabled={docRefType === '1' ? true : false}
+                                                    />
+                                                </td>
+                                                <td className="text-center">
+                                                    <select
+                                                        className="form-select"
+                                                        value={item.itemDisType || ''}
+                                                        onChange={(e) => handleChangeDetail(index, 'itemDisType', e.target.value)}
+                                                        disabled={docRefType === '1' ? true : false}
+                                                    >
+                                                        <option value="1">฿</option>
+                                                        <option value="2">%</option>
+                                                    </select>
+                                                </td>
+                                                <td className="text-center">
+                                                    <input
+                                                        type="text"
+                                                        className="form-control text-end"
+                                                        value={formatCurrency(item.itemTotal || 0)}
+                                                        disabled={true}
+                                                        onChange={(e) => handleChangeDetail(index, 'itemTotal', e.target.value)}
+                                                    />
+                                                </td>
+                                                <td className="text-center">
+                                                    <input
+                                                        type="text"
+                                                        className="form-control"
+                                                        value={item.whName || ''}
+                                                        disabled={true}
+                                                        onChange={(e) => handleChangeDetail(index, 'whId', item.whId)}
+                                                    />
+                                                </td>
+                                                <td className="text-center">
+                                                    <button
+                                                        type="button"
+                                                        className="btn btn-danger"
+                                                        onClick={() => handleRemoveRow(index)}
+                                                        disabled={docRefType === '1' ? true : false}
+                                                    >
+                                                        ลบ
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* <ItemTable
                     formDetailList={formDetailList}
                     handleChangeDetail={handleChangeDetail}
                     handleRemoveRow={handleRemoveRow}
@@ -931,7 +1240,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                     onRowSelectItem={onRowSelectItem}
                     handleItemShow={handleItemShow}
                     disabled={docRefType === '1' ? true : false}
-                />
+                /> */}
                 <Summary
                     formMasterList={formMasterList}
                     handleChangeMaster={handleChangeMaster}

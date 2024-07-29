@@ -1042,7 +1042,7 @@ function Form({ callInitialize, mode, name, maxRecNo }) {
                                     </thead>
                                     <tbody>
                                         {formDetailList.map((item, index) => (
-                                            <tr key={item.itemId}>
+                                            <tr key={item.itemId || index + 1}>
                                                 <td className="text-center">{index + 1}</td>
                                                 <td className="text-center">
                                                     <input

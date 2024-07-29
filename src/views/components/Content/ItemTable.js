@@ -39,21 +39,20 @@ const ItemTable = ({
                                 <tr>
                                     <th className="text-center" style={{ width: '2%' }}>#</th>
                                     <th className="text-center" style={{ width: '10%' }}>รหัสสินค้า</th>
-                                    <th className="text-center" style={{ width: '16%' }}>ชื่อสินค้า</th>
-                                    <th className="text-center" style={{ width: '8%' }}>จำนวนรับ</th>
-                                    <th className="text-center" style={{ width: '8%' }}>จำนวนค้างรับ</th>
+                                    <th className="text-center" style={{ width: '20%' }}>ชื่อสินค้า</th>
+                                    <th className="text-center" style={{ width: '8%' }}>จำนวน</th>
                                     <th className="text-center" style={{ width: '6%' }}>หน่วย</th>
                                     <th className="text-center" style={{ width: '8%' }}>ราคาต่อหน่วย</th>
                                     <th className="text-center" style={{ width: '8%' }}>ส่วนลด</th>
                                     <th className="text-center" style={{ width: '5%' }}>%</th>
                                     <th className="text-center" style={{ width: '10%' }}>จำนวนเงินรวม</th>
-                                    <th className="text-center" style={{ width: '16%' }}>คลังสินค้า</th>
+                                    <th className="text-center" style={{ width: '20%' }}>คลังสินค้า</th>
                                     <th className="text-center" style={{ width: '3%' }}>ลบ</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {formDetailList.map((item, index) => (
-                                    <tr key={item.itemId}>
+                                    <tr key={item.itemId || index + 1}>
                                         <td className="text-center">{index + 1}</td>
                                         <td className="text-center">
                                             <input
@@ -79,9 +78,10 @@ const ItemTable = ({
                                                 className="form-control text-center"
                                                 value={item.itemQty || 0}
                                                 onChange={(e) => handleChangeDetail(index, 'itemQty', e.target.value)}
-                                                disabled={window.location.pathname === '/product-receipt'
-                                                    ? (!disabled ? true : false)
-                                                    : disabled}
+                                                // disabled={window.location.pathname === '/product-receipt'
+                                                //     ? (!disabled ? true : false)
+                                                //     : disabled}
+                                                disabled={disabled}
                                             />
                                         </td>
                                         <td className="text-center">

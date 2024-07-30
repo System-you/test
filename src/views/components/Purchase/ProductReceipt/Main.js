@@ -171,7 +171,7 @@ function Main({ masterList, detailList, statusColours, name, onPageInsert, onRow
                         date: 'Rec_Date',
                         apCode: 'AP_Code',
                         apName: 'AP_Name',
-                        dueDate: 'Doc_DueDate',
+                        dueDate: 'Rec_DueDate',
                         netTotal: 'NetTotal',
                         createdBy: 'Created_By_Name',
                         updatedBy: 'Update_By_Name'

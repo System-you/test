@@ -26,9 +26,12 @@ import {
     formatCurrency,
     formatDateTime,
     formatThaiDate,
+    formatThaiDateUi,
     formatThaiDateToDate,
+    formatThaiDateUiToDate,
     getMaxDocNo,
     getCreateDateTime,
+    setCreateDateTime,
     updateStatusByNo
 } from '../../../../utils/SamuiUtils';
 
@@ -42,7 +45,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
     const [itemDataList, setItemDataList] = useState([]);
 
     // การคำนวณเงิน
-    const [selectedDiscountValueType, setSelectedDiscountValueType] = useState("1");
+    const [selectedDiscountValueType, setSelectedDiscountValueType] = useState("2");
     const [totalPrice, setTotalPrice] = useState(0);
     const [receiptDiscount, setReceiptDiscount] = useState(0);
     const [subFinal, setSubFinal] = useState(0);
@@ -153,11 +156,11 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                 const firstItem = filterItem[0];
 
                 setFormMasterList({
-                    refDocID: '1',
-                    refDoc: maxDocNo,
-                    refDocDate: formatThaiDate(fromViewPoH.Doc_Date),
-                    docDate: formatThaiDate(fromViewPoH.Doc_Date),
-                    docDueDate: formatThaiDate(fromViewPoH.Doc_DueDate),
+                    refDocID: fromViewPoH.Ref_DocID,
+                    refDoc: fromViewPoH.Ref_Doc,
+                    refDocDate: formatThaiDateUi(fromViewPoH.Ref_DocDate),
+                    docDate: formatThaiDate(new Date()),
+                    docDueDate: formatThaiDate(new Date()),
                     docRemark1: fromViewPoH.Doc_Remark1,
                     docRemark2: fromViewPoH.Doc_Remark2,
                     docType: fromViewPoH.Doc_Type,
@@ -173,7 +176,11 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                     apAdd3: firstItem.AP_Add3,
                     apProvince: firstItem.AP_Province,
                     apZipcode: firstItem.AP_Zipcode,
-                    apTaxNo: firstItem.AP_TaxNo
+                    apTaxNo: firstItem.AP_TaxNo,
+                    createdByName: firstItem.Created_By_Name,
+                    createdDate: setCreateDateTime(new Date(firstItem.Created_Date)),
+                    updateDate: firstItem.Update_Date,
+                    updateByName: firstItem.Update_By_Name
                 });
 
                 setIsVatChecked(fromViewPoH.IsVat === 1 ? true : false);
@@ -228,7 +235,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                 doc_is_prc: "N",
                 ref_doc_id: formMasterList.refDocID,
                 ref_doc: formMasterList.refDoc,
-                ref_doc_date: formMasterList.refDocDate,
+                ref_doc_date: formatThaiDateUiToDate(formMasterList.refDocDate),
                 comp_id: window.localStorage.getItem('company'),
                 ref_project_id: formMasterList.refProjectID,
                 ref_project_no: formMasterList.refProjectNo,
@@ -252,7 +259,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                 credit_term_2_remark: formMasterList.creditTerm2Remark,
                 acc_code: "0000",
                 emp_name: formMasterList.empName,
-                created_date: formatThaiDateToDate(formMasterList.createdDate),
+                created_date: formatThaiDateUiToDate(formMasterList.createdDate),
                 created_by_name: window.localStorage.getItem('name'),
                 created_by_id: "1",
                 update_date: formMasterList.updateDate,
@@ -286,7 +293,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                 headers: { key: process.env.REACT_APP_ANALYTICS_KEY }
             });
 
-            // ตรวจสอบสถานะการตอบกลับ
+            // // ตรวจสอบสถานะการตอบกลับ
             if (response.data.status === 'OK') {
                 const getDocIdResponse = await Axios.post(`${process.env.REACT_APP_API_URL}/api/get-by-doc-no`, {
                     table: 'PO_H',
@@ -384,7 +391,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
 
             // ค้นหาข้อมูลที่ตรงกับ prSelected.Doc_No ใน PR_H และ AP_ID ใน apDataList
             const [getAllPrH, fromViewAp] = await Promise.all([
-                getAllData("API_0101_PR_H', 'ORDER BY Doc_No DESC"),
+                getAllData("API_0101_PR_H", "ORDER BY Doc_No DESC"),
                 apDataList.find(ap => ap.AP_Id === prSelected.AP_ID)
             ]);
 
@@ -439,11 +446,12 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                 const firstItem = filterItem[0];
 
                 setFormMasterList({
+                    ...formMasterList,
                     refDocID: prSelected.Doc_ID,
                     refDoc: prSelected.Doc_No,
-                    refDocDate: formatThaiDate(prSelected.Doc_Date),
-                    docDate: formatThaiDate(fromViewPrH.Doc_Date),
-                    docDueDate: formatThaiDate(fromViewPrH.Doc_DueDate),
+                    refDocDate: formatThaiDateUi(prSelected.Doc_Date),
+                    docDate: formatThaiDate(new Date()),
+                    docDueDate: formatThaiDate(new Date()),
                     docRemark1: fromViewPrH.Doc_Remark1,
                     docRemark2: fromViewPrH.Doc_Remark2,
                     docType: fromViewPrH.Doc_Type,
@@ -459,7 +467,11 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                     apAdd3: firstItem.AP_Add3,
                     apProvince: firstItem.AP_Province,
                     apZipcode: firstItem.AP_Zipcode,
-                    apTaxNo: firstItem.AP_TaxNo
+                    apTaxNo: firstItem.AP_TaxNo,
+                    createdByName: window.localStorage.getItem('name'),
+                    createdDate: getCreateDateTime(new Date()),
+                    updateDate: fromViewPrH.Update_Date,
+                    updateByName: fromViewPrH.Update_By_Name
                 });
 
                 setIsVatChecked(fromViewPrH.IsVat === 1 ? true : false);
@@ -642,7 +654,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             type="text"
                             className="form-control input-spacing"
                             name="createdDate"
-                            value={getCreateDateTime()}
+                            value={formMasterList.createdDate}
                             //onChange={handleChangeMaster}
                             disabled={true} />
                     </div>
@@ -820,7 +832,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                 </div>
                 <div className="col-2" />
                 <div className="col-3 text-right">
-                    <div className="d-flex align-items-center">
+                    {/* <div className="d-flex align-items-center">
                         <label>วันที่อนุมัติ</label>
                         <input
                             type="text"
@@ -829,7 +841,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             value={formMasterList.approvedDate || ''}
                             onChange={handleChangeMaster}
                             disabled={true} />
-                    </div>
+                    </div> */}
                 </div>
             </div>
             <div className="row mt-1">
@@ -846,7 +858,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                 </div>
                 <div className="col-6" />
                 <div className="col-3 text-right">
-                    <div className="d-flex align-items-center">
+                    {/* <div className="d-flex align-items-center">
                         <label>ผู้อนุมัติเอกสาร</label>
                         <input
                             type="text"
@@ -855,7 +867,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             value={formMasterList.approvedByName || ''}
                             onChange={handleChangeMaster}
                             disabled={true} />
-                    </div>
+                    </div> */}
                 </div>
             </div>
             <div className="row mt-1">
@@ -879,7 +891,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                 </div>
                 <div className="col-6" />
                 <div className="col-3 text-right">
-                    <div className="d-flex align-items-center">
+                    {/* <div className="d-flex align-items-center">
                         <label>หมายเหตุอนุมัติ</label>
                         <input
                             type="text"
@@ -888,7 +900,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             value={formMasterList.approvedMemo || ''}
                             onChange={handleChangeMaster}
                             disabled={true} />
-                    </div>
+                    </div> */}
                 </div>
             </div>
             <hr />

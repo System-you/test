@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { formatCurrency } from '../../../utils/SamuiUtils';
+import { formatCurrency, getAlert } from '../../../utils/SamuiUtils';
 
 const RecModal = ({ showRecModal, handleRecClose, recDataList, onRowSelectRec, onConfirmRecSelection }) => {
     const [searchTerm, setSearchTerm] = useState('');
@@ -22,11 +22,32 @@ const RecModal = ({ showRecModal, handleRecClose, recDataList, onRowSelectRec, o
         }
     }, [showRecModal]);
 
+    const checkApNameConsistency = (items) => {
+        if (items.length > 0) {
+            const apName = items[0].AP_Name;
+            const isConsistent = items.every(item => item.AP_Name === apName);
+            if (!isConsistent) {
+                getAlert('FAILED', 'กรุณาเลือกผู้รับเงินเป็นรายเดียวกัน');
+            }
+            return isConsistent;
+        }
+        return true;
+    };
+
     const handleCheckboxChange = (rec) => {
+        let updatedSelectedItems;
         if (selectedItems.some(item => item.Rec_No === rec.Rec_No)) {
-            setSelectedItems(selectedItems.filter(item => item.Rec_No !== rec.Rec_No));
+            updatedSelectedItems = selectedItems.filter(item => item.Rec_No !== rec.Rec_No);
         } else {
-            setSelectedItems([...selectedItems, rec]);
+            updatedSelectedItems = [...selectedItems, rec];
+        }
+
+        setSelectedItems(updatedSelectedItems);
+    };
+
+    const handleConfirmSelection = () => {
+        if (checkApNameConsistency(selectedItems)) {
+            onConfirmRecSelection(selectedItems);
         }
     };
 
@@ -107,7 +128,7 @@ const RecModal = ({ showRecModal, handleRecClose, recDataList, onRowSelectRec, o
                             </div>
                         </div>
                         <div className="modal-footer">
-                            <button className="btn btn-primary" onClick={() => onConfirmRecSelection(selectedItems)}>
+                            <button className="btn btn-primary" onClick={handleConfirmSelection}>
                                 ยืนยันการเลือก
                             </button>
                             <button className="btn btn-danger" onClick={clearSelection}>

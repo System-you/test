@@ -66,6 +66,18 @@ function Main({ masterList, detailList, statusColours, statusPaidColours, status
                     }
                 });
 
+                masterList.forEach(data => {
+                    if (data.Doc_Status_PaidName) {
+                        statusPaidCounts[data.Doc_Status_PaidName] = (statusPaidCounts[data.Doc_Status_PaidName] || 0) + 1;
+                    }
+                });
+
+                masterList.forEach(data => {
+                    if (data.Doc_Status_ReceiveName) {
+                        statusReceiveCounts[data.Doc_Status_ReceiveName] = (statusReceiveCounts[data.Doc_Status_ReceiveName] || 0) + 1;
+                    }
+                });
+
                 setCountWaitApprove(statusCounts['รออนุมัติ']);
                 setCountInProgress(statusCounts['กำลังดำเนินการ']);
                 setCountNotApprove(statusCounts['ไม่อนุมัติ']);
@@ -295,6 +307,8 @@ function Main({ masterList, detailList, statusColours, statusPaidColours, status
                         typeName: 'DocType_Name',
                         statusName: 'DocStatus_Name',
                         statusColor: 'DocStatus_Colour',
+                        statusReceiveName: 'Doc_Status_ReceiveName',
+                        statusReceiveColor: 'Doc_Status_ReceiveColour',
                         date: 'Doc_Date',
                         apCode: 'AP_Code',
                         apName: 'AP_Name',

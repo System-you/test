@@ -28,11 +28,19 @@ const DataTable = ({ currentItems, onRowSelected, currentPage, handlePageChange,
                         <thead className="thead-dark">
                             <tr>
                                 <th className="text-center" style={{ width: '5%' }}>เลขที่เอกสาร</th>
-                                <th className="text-center" style={{ width: '10%' }}>ประเภทเอกสาร</th>
-                                <th className="text-center" style={{ width: '10%' }}>สถานะ</th>
+                                <th className="text-center" style={{ width: '8%' }}>ประเภทเอกสาร</th>
+                                <th className="text-center" style={{ width: '10%' }}>สถานะเอกสาร</th>
+
+                                <th hidden={window.location.pathname === '/purchase-order' ? false : true}
+                                    className="text-center"
+                                    style={{ width: '10%' }}>
+                                    สถานะรับสินค้า
+                                </th>
+
                                 <th className="text-center" style={{ width: '6%' }}>วันที่เอกสาร</th>
                                 <th className="text-center" style={{ width: '6%' }}>รหัสเจ้าหนี้</th>
-                                <th className="text-center" style={{ width: '33%' }}>ชื่อเจ้าหนี้</th>
+                                <th className="text-center" style={window.location.pathname === '/purchase-order'
+                                    ? { width: '25%' } : { width: '35%' }}>ชื่อเจ้าหนี้</th>
                                 <th className="text-center" style={{ width: '6%' }}>Due Date</th>
                                 <th className="text-center" style={{ width: '8%' }}>ยอดรวม</th>
                                 <th className="text-center" style={{ width: '8%' }}>สร้างรายการ โดย</th>
@@ -64,6 +72,24 @@ const DataTable = ({ currentItems, onRowSelected, currentPage, handlePageChange,
                                                 </center>
                                             )}
                                         </td>
+                                        <td className="text-left" hidden={window.location.pathname === '/purchase-order' ? false : true}>
+                                            {data[fieldMappings.statusName] ? (
+                                                <button
+                                                    className="btn"
+                                                    style={{
+                                                        backgroundColor: data[fieldMappings.statusReceiveColor],
+                                                        color: 'white',
+                                                        width: '100%'
+                                                    }}
+                                                >
+                                                    {data[fieldMappings.statusReceiveName]}
+                                                </button>
+                                            ) : (
+                                                <center>
+                                                    <p>-</p>
+                                                </center>
+                                            )}
+                                        </td>
                                         <td className="text-center">{data[fieldMappings.date] ? formatDate(data[fieldMappings.date]) : "-"}</td>
                                         <td className="text-center">{data[fieldMappings.apCode] || "-"}</td>
                                         <td className="text-left">{data[fieldMappings.apName] || "-"}</td>
@@ -77,7 +103,7 @@ const DataTable = ({ currentItems, onRowSelected, currentPage, handlePageChange,
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan="10">
+                                    <td colSpan={window.location.pathname === '/purchase-order' ? "11" : "10"}>
                                         <center>
                                             <h5>ไม่พบข้อมูล</h5>
                                         </center>

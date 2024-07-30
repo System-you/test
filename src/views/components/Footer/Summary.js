@@ -48,7 +48,7 @@ const Summary = ({
                                                     name="1"
                                                     checked={selectedDiscountValueType === '1'}
                                                     onChange={handleCheckboxChange}
-                                                    disabled={disabled}
+                                                    disabled={true}
                                                 />
                                                 <label className="form-check-label">฿</label>
                                                 <input

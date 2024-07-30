@@ -14,7 +14,22 @@ import { prMasterModel } from '../../../../model/Purchase/PrMasterModel';
 import { prDetailModel } from '../../../../model/Purchase/PrDetailModel';
 
 // Utils
-import { getAllData, getDocType, getTransType, getViewAp, getViewItem, getAlert, formatCurrency, formatDateTime, formatThaiDate, formatThaiDateToDate, getMaxDocNo, getCreateDateTime } from '../../../../utils/SamuiUtils';
+import {
+    getAllData,
+    getDocType,
+    getTransType,
+    getViewAp,
+    getViewItem,
+    getAlert,
+    formatCurrency,
+    formatDateTime,
+    formatThaiDate,
+    formatThaiDateToDate,
+    formatThaiDateUiToDate,
+    getMaxDocNo,
+    getCreateDateTime,
+    setCreateDateTime
+} from '../../../../utils/SamuiUtils';
 
 function Form({ callInitialize, mode, name, maxDocNo }) {
     const [formMasterList, setFormMasterList] = useState(prMasterModel());
@@ -25,7 +40,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
     const [itemDataList, setItemDataList] = useState([]);
 
     // การคำนวณเงิน
-    const [selectedDiscountValueType, setSelectedDiscountValueType] = useState("1");
+    const [selectedDiscountValueType, setSelectedDiscountValueType] = useState("2");
     const [totalPrice, setTotalPrice] = useState(0);
     const [receiptDiscount, setReceiptDiscount] = useState(0);
     const [subFinal, setSubFinal] = useState(0);
@@ -130,9 +145,9 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                 const firstItem = filterItem[0];
 
                 setFormMasterList({
-                    refDocID: '1',
-                    refDoc: maxDocNo,
-                    refDocDate: formatThaiDate(fromViewPrH.Doc_Date),
+                    refDocID: null,
+                    refDoc: null,
+                    refDocDate: null,
                     docDate: formatThaiDate(fromViewPrH.Doc_Date),
                     docDueDate: formatThaiDate(fromViewPrH.Doc_DueDate),
                     docRemark1: fromViewPrH.Doc_Remark1,
@@ -150,7 +165,11 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                     apAdd3: firstItem.AP_Add3,
                     apProvince: firstItem.AP_Province,
                     apZipcode: firstItem.AP_Zipcode,
-                    apTaxNo: firstItem.AP_TaxNo
+                    apTaxNo: firstItem.AP_TaxNo,
+                    createdByName: firstItem.Created_By_Name,
+                    createdDate: setCreateDateTime(new Date(firstItem.Created_Date)),
+                    updateDate: firstItem.Update_Date,
+                    updateByName: firstItem.Update_By_Name
                 });
 
                 setIsVatChecked(fromViewPrH.IsVat === 1 ? true : false);
@@ -224,7 +243,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                 credit_term_2_remark: formMasterList.creditTerm2Remark,
                 acc_code: "0000",
                 emp_name: formMasterList.empName,
-                created_date: formatThaiDateToDate(formMasterList.createdDate),
+                created_date: formatThaiDateUiToDate(formMasterList.createdDate),
                 created_by_name: window.localStorage.getItem('name'),
                 created_by_id: "1",
                 update_date: formMasterList.updateDate,
@@ -350,7 +369,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                 apAdd3: apSelected.AP_Add3,
                 apProvince: apSelected.AP_Province,
                 apZipcode: apSelected.AP_Zipcode,
-                apTaxNo: apSelected.AP_TaxNo
+                apTaxNo: apSelected.AP_TaxNo,
             });
             handleApClose(); // ปิด modal หลังจากเลือก
         } catch (error) {
@@ -499,7 +518,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             type="text"
                             className="form-control input-spacing"
                             name="createdDate"
-                            value={getCreateDateTime()}
+                            value={formMasterList.createdDate}
                             // onChange={handleChangeMaster}
                             disabled={true} />
                     </div>

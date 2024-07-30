@@ -1,13 +1,17 @@
+import {
+    getCreateDateTime
+} from '../../utils/SamuiUtils';
+
 export const recMasterModel = () => {
     const today = new Date();
     const year = today.getFullYear() + 543; // แปลงเป็นปี พ.ศ.
     const formattedNewDate = `${year}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
-    const formattedTime = today.toTimeString().split(' ')[0]; // แยกเอาเฉพาะเวลา
+    // const formattedTime = today.toTimeString().split(' ')[0]; // แยกเอาเฉพาะเวลา
 
     return {
         recNo: null,
         recDate: formattedNewDate,
-        docDueDate: formattedNewDate,
+        recDueDate: formattedNewDate,
         recStatus: null,
         docCode: null,
         docType: 1,
@@ -40,7 +44,7 @@ export const recMasterModel = () => {
         creditTerm2Remark: null,
         accCode: null,
         empName: null,
-        createdDate: `${formattedNewDate} ${formattedTime}`, // เพิ่มเวลาเข้าไป
+        createdDate: getCreateDateTime(new Date()),
         createdByName: window.localStorage.getItem('name'),
         createdById: null,
         updateDate: null,

@@ -27,9 +27,12 @@ import {
     formatCurrency,
     formatDateTime,
     formatThaiDate,
+    formatThaiDateUi,
     formatThaiDateToDate,
+    formatThaiDateUiToDate,
     getMaxRecNo,
     getCreateDateTime,
+    setCreateDateTime,
     updateStatusByNo,
     updateQty
 } from '../../../../utils/SamuiUtils';
@@ -44,7 +47,7 @@ function Form({ callInitialize, mode, name, maxRecNo }) {
     const [itemDataList, setItemDataList] = useState([]);
 
     // การคำนวณเงิน
-    const [selectedDiscountValueType, setSelectedDiscountValueType] = useState("1");
+    const [selectedDiscountValueType, setSelectedDiscountValueType] = useState("2");
     const [totalPrice, setTotalPrice] = useState(0);
     const [receiptDiscount, setReceiptDiscount] = useState(0);
     const [subFinal, setSubFinal] = useState(0);
@@ -76,7 +79,8 @@ function Form({ callInitialize, mode, name, maxRecNo }) {
 
             const poDataList = await getViewPoH();
             if (poDataList && poDataList.length > 0) {
-                setPoDataList(poDataList);
+                const filteredList = poDataList.filter(item => item.Doc_Status_ReceiveName !== "รับสินค้าครบ");
+                setPoDataList(filteredList);
             }
 
             const apDataList = await getViewAp();
@@ -98,7 +102,7 @@ function Form({ callInitialize, mode, name, maxRecNo }) {
         }
     };
 
-    const getModelByNo = async (apDataList) => {
+    const getModelByNo = async (apDataList, refDocId) => {
         try {
             // ค้นหาข้อมูลที่ตรงกับใน PO_H และ AP_ID ใน apDataList
             const [getAllRecH] = await Promise.all([
@@ -115,6 +119,12 @@ function Form({ callInitialize, mode, name, maxRecNo }) {
                 throw new Error("Data not found");
             };
 
+            // ค้นหาข้อมูลที่ตรงกับใน PO_H และ AP_ID ใน apDataList
+            // ***************************** refDocID = NULL ตอน onRowSelect ***********************
+            const [detailResponse] = await Promise.all([
+                getAllData('API_0202_PO_D', `AND Doc_ID = ${fromViewRecH.Ref_DocID}`),
+            ]);
+
             // ฟังก์ชันเพื่อสร้างโมเดลใหม่สำหรับแต่ละแถวและคำนวณ itemTotal
             const createNewRow = (index, itemSelected) => {
                 const itemQty = Number(itemSelected.Item_Qty) || 0;
@@ -128,6 +138,17 @@ function Form({ callInitialize, mode, name, maxRecNo }) {
                     itemTotal -= itemDiscount; // ลดตามจำนวนเงิน
                 }
 
+                // ตรวจสอบว่า detailResponse มีข้อมูลหรือไม่
+                let itemQtyNow = 0;
+                let itemRecQty = 0;
+                if (detailResponse && detailResponse.length > 0) {
+                    const detail = detailResponse.find(item => item.Item_Id === itemSelected.Item_Id);
+                    if (detail && detail.Item_Qty && detail.Item_REC_Qty !== undefined) {
+                        itemQtyNow = detail.Item_Qty;
+                        itemRecQty = detail.Item_REC_Qty;
+                    }
+                }
+
                 return {
                     ...recDetailModel(index + 1),
                     line: itemSelected.Line,
@@ -135,6 +156,7 @@ function Form({ callInitialize, mode, name, maxRecNo }) {
                     itemCode: itemSelected.Item_Code,
                     itemName: itemSelected.Item_Name,
                     itemQty,
+                    itemQtyOld: Number(itemQtyNow - itemRecQty),
                     itemUnit: itemSelected.Item_Unit,
                     itemPriceUnit,
                     itemDiscount,
@@ -154,17 +176,18 @@ function Form({ callInitialize, mode, name, maxRecNo }) {
             const filterItem = getAllItem.filter(item => item.Rec_No === maxRecNo);
 
             if (filterItem.length > 0) {
-
                 const newFormDetails = filterItem.map((item, index) => createNewRow(formDetailList.length + index, item));
 
                 setFormDetailList(newFormDetails);
 
+                createNewRow(formDetailList.length + 0, 100);
+
                 const firstItem = filterItem[0];
                 setFormMasterList({
-                    refDocID: '1',
-                    refDoc: maxRecNo,
-                    refDocDate: formatThaiDate(fromViewRecH.Ref_DocDate),
-                    recDate: formatThaiDate(fromViewRecH.Rec_Date),
+                    refDocID: fromViewRecH.Ref_DocID,
+                    refDoc: fromViewRecH.Ref_Doc,
+                    refDocDate: formatThaiDateUi(fromViewRecH.Ref_DocDate),
+                    recDate: formatThaiDate(new Date()),
                     docDueDate: formatThaiDate(fromViewRecH.Rec_DueDate),
                     docRemark1: fromViewRecH.Doc_Remark1,
                     docRemark2: fromViewRecH.Doc_Remark2,
@@ -181,7 +204,11 @@ function Form({ callInitialize, mode, name, maxRecNo }) {
                     apAdd3: firstItem.AP_Add3,
                     apProvince: firstItem.AP_Province,
                     apZipcode: firstItem.AP_Zipcode,
-                    apTaxNo: firstItem.AP_TaxNo
+                    apTaxNo: firstItem.AP_TaxNo,
+                    createdByName: firstItem.Created_By_Name,
+                    createdDate: setCreateDateTime(new Date(firstItem.Created_Date)),
+                    updateDate: firstItem.Update_Date,
+                    updateByName: firstItem.Update_By_Name
                 });
 
                 setIsVatChecked(fromViewRecH.IsVat === 1 ? true : false);
@@ -196,11 +223,6 @@ function Form({ callInitialize, mode, name, maxRecNo }) {
         } catch (error) {
             getAlert("FAILED", error.message || error);
         }
-    };
-
-    const handleCheckboxChange = (event) => {
-        const { name } = event.target;
-        setSelectedDiscountValueType(selectedDiscountValueType === name ? null : name);
     };
 
     const handleSubmit = async (status) => {
@@ -227,8 +249,8 @@ function Form({ callInitialize, mode, name, maxRecNo }) {
             // ข้อมูลหลักที่จะส่งไปยัง API
             const formMasterData = {
                 rec_no: newMaxRec,
-                rec_date: formatThaiDateToDate(formMasterList.docDate),
-                rec_due_date: formatThaiDateToDate(formMasterList.docDueDate),
+                rec_date: formatThaiDateToDate(formMasterList.recDate),
+                rec_due_date: formatThaiDateToDate(formMasterList.recDueDate),
                 rec_status: parseInt("2", 10),
                 doc_code: parseInt("3", 10),
                 doc_type: parseInt("1", 10),
@@ -237,7 +259,7 @@ function Form({ callInitialize, mode, name, maxRecNo }) {
                 doc_is_po: parseInt("0", 10),
                 ref_doc_id: formMasterList.refDocID,
                 ref_doc: formMasterList.refDoc,
-                ref_doc_date: formMasterList.refDocDate,
+                ref_doc_date: formatThaiDateUiToDate(formMasterList.refDocDate),
                 comp_id: window.localStorage.getItem('company'),
                 ref_project_id: formMasterList.refProjectID,
                 ref_project_no: formMasterList.refProjectNo,
@@ -247,13 +269,15 @@ function Form({ callInitialize, mode, name, maxRecNo }) {
                 ap_id: parseInt(formMasterList.apID, 10),
                 ap_code: formMasterList.apCode,
                 action_hold: parseInt("0", 10),
-                discount_value: parseFloat(formMasterList.discountValue || 0.00),
+                // discount_value: parseFloat(formMasterList.discountValue || 0.00),
+                discount_value: parseFloat(0.00),
                 discount_value_type: parseInt(selectedDiscountValueType, 10),
                 discount_cash: parseFloat("0.00"),
                 discount_cash_type: formMasterList.discountCashType,
                 discount_transport: parseFloat("0.00"),
                 discount_transport_type: formMasterList.discountTransportType,
-                is_vat: isVatChecked ? parseInt("1", 10) : parseInt("2", 10),
+                // is_vat: isVatChecked ? parseInt("1", 10) : parseInt("2", 10),
+                is_vat: parseInt("2", 10),
                 doc_seq: formatDateTime(new Date()),
                 credit_term: parseInt(formMasterList.creditTerm, 10),
                 credit_term_1_day: parseInt("0", 10),
@@ -261,7 +285,7 @@ function Form({ callInitialize, mode, name, maxRecNo }) {
                 credit_term_2_remark: formMasterList.creditTerm2Remark,
                 acc_code: "0000",
                 emp_name: formMasterList.empName,
-                created_date: formatThaiDateToDate(formMasterList.createdDate),
+                created_date: formatThaiDateUiToDate(formMasterList.createdDate),
                 created_by_name: window.localStorage.getItem('name'),
                 created_by_id: "1",
                 update_date: formMasterList.updateDate,
@@ -297,55 +321,56 @@ function Form({ callInitialize, mode, name, maxRecNo }) {
 
             // ตรวจสอบสถานะการตอบกลับ
             if (response.data.status === 'OK') {
-                const getRecIdResponse = await Axios.post(`${process.env.REACT_APP_API_URL}/api/get-by-rec-no`, {
-                    table: 'REC_H',
-                    rec_no: formMasterData.rec_no
-                }, {
-                    headers: { key: process.env.REACT_APP_ANALYTICS_KEY }
-                });
+                // กรองรายการที่มี ItemQty มากกว่า 0
+                const validDetails = formDetailList.filter(item => Number(item.itemQty) !== 0);
 
-                // ส่งข้อมูลรายละเอียดหากพบ Rec_Id
-                if (getRecIdResponse && getRecIdResponse.data.length > 0) {
-                    const recId = parseInt(getRecIdResponse.data[0].Rec_Id, 10);
-                    let index = 1;
+                if (validDetails.length > 0) {
+                    const getRecIdResponse = await Axios.post(`${process.env.REACT_APP_API_URL}/api/get-by-rec-no`, {
+                        table: 'REC_H',
+                        rec_no: formMasterData.rec_no
+                    }, {
+                        headers: { key: process.env.REACT_APP_ANALYTICS_KEY }
+                    });
 
-                    const detailPromises = formDetailList.map(async (item) => {
-                        const formDetailData = {
-                            rec_id: parseInt(recId, 10),
-                            line: index,
-                            item_id: item.itemId,
-                            item_code: item.itemCode,
-                            item_name: item.itemName,
-                            item_qty: item.itemQty,
-                            item_unit: item.itemUnit,
-                            item_price_unit: item.itemPriceUnit,
-                            item_discount: item.itemDiscount,
-                            item_distype: item.itemDisType === '1' ? parseInt("1", 10) : parseInt("2", 10),
-                            item_total: item.itemTotal,
-                            item_status: item.itemStatus === 'Y' ? 1 : 0,
-                            wh_id: null,
-                            zone_id: parseInt("1", 10),
-                            lt_id: parseInt("1", 10),
-                            ds_seq: formatDateTime(new Date())
-                        };
+                    if (getRecIdResponse && getRecIdResponse.data.length > 0) {
+                        const recId = parseInt(getRecIdResponse.data[0].Rec_Id, 10);
+                        let lineIndex = 1;
 
-                        const detailResponse = await getByDocId("PO_D", formMasterList.refDocID, `AND Line = ${index}`);
+                        const detailPromises = validDetails.map(async (item) => {
+                            const formDetailData = {
+                                rec_id: recId,
+                                line: lineIndex,
+                                item_id: item.itemId,
+                                item_code: item.itemCode,
+                                item_name: item.itemName,
+                                item_qty: item.itemQty,
+                                item_unit: item.itemUnit,
+                                item_price_unit: item.itemPriceUnit,
+                                item_discount: item.itemDiscount,
+                                item_distype: item.itemDisType === '1' ? 1 : 2,
+                                item_total: item.itemTotal,
+                                item_status: item.itemStatus === 'Y' ? 1 : 0,
+                                wh_id: null,
+                                zone_id: 1,
+                                lt_id: 1,
+                                ds_seq: formatDateTime(new Date())
+                            };
 
-                        // คำนวณค่าต่าง ๆ
-                        const itemQty = parseFloat(item.itemQty);
-                        const itemRecQty = parseFloat(detailResponse[0].Item_REC_Qty) + itemQty;
-                        const itemRecBalance = parseFloat(detailResponse[0].Item_REC_Balance) - itemQty;
+                            const detailResponse = await getByDocId("PO_D", formMasterList.refDocID, `AND Item_Id = ${item.itemId}`);
 
-                        try {
+                            // คำนวณค่าต่าง ๆ
+                            const itemQty = parseFloat(item.itemQty);
+                            const itemRecQty = detailResponse[0].Item_REC_Qty + itemQty;
+                            const itemRecBalance = detailResponse[0].Item_REC_Balance - itemQty;
+
                             // ลบจำนวนสินค้าที่ PO_D จำนวนรับ และ จำนวนค้างรับ (updateQty = async (table, updateCode, where))
                             await updateQty(
-                                'PO_D',                                                             // table: ชื่อตาราง
-                                `Item_REC_Qty = ${parseFloat(itemRecQty)},
-                                 Item_REC_Balance = ${parseFloat(itemRecBalance)}`,                 // update_code : ข้อมูลที่จะอัพเดท         
-                                `WHERE DT_Id = '${detailResponse[0].DT_Id}'`                        // where: เงื่อนไขในการอัพเดท
+                                'PO_D',
+                                `Item_REC_Qty = ${itemRecQty}, Item_REC_Balance = ${itemRecBalance}`,
+                                `WHERE Doc_ID = ${formMasterList.refDocID} AND Item_Id = ${item.itemId}`
                             );
 
-                            index++;
+                            lineIndex++;
 
                             // For Log PO_D
                             // console.log("formDetailData : ", formDetailData);
@@ -353,13 +378,34 @@ function Form({ callInitialize, mode, name, maxRecNo }) {
                             return Axios.post(`${process.env.REACT_APP_API_URL}/api/create-rec-d`, formDetailData, {
                                 headers: { key: process.env.REACT_APP_ANALYTICS_KEY }
                             });
-                        } catch (error) {
-                            console.error("Error updating PO_D:", error);
-                            throw error; // Re-throw to handle the promise rejection
-                        }
-                    });
+                        });
 
-                    await Promise.all(detailPromises);
+                        await Promise.all(detailPromises);
+
+                        // ดึงข้อมูลทั้งหมดที่ตรงกับ Doc_ID ที่ระบุ
+                        // const detailResponse = await getByDocId("PO_D", formMasterList.refDocID, `ORDER BY Line ASC`);
+
+                        // validDetails.forEach(async (item, index) => {
+                        //     let line = index + 1;
+
+                        //     // กรองข้อมูลตาม line ที่ต้องการ
+                        //     let details = detailResponse.filter(detail => detail.Line === line);
+
+                        //     if (details.length > 0 && details[0].Item_REC_Qty !== undefined) {
+                        //         // คำนวณค่าต่าง ๆ
+                        //         const itemQty = parseFloat(item.itemQty);
+                        //         const itemRecQty = parseFloat(details[0].Item_REC_Qty) + itemQty;
+                        //         const itemRecBalance = parseFloat(details[0].Item_REC_Balance) - itemQty;
+
+                        //         // ลบจำนวนสินค้าที่ PO_D จำนวนรับ และ จำนวนค้างรับ (updateQty = async (table, updateCode, where))
+                        //         await updateQty(
+                        //             'PO_D',
+                        //             `Item_REC_Qty = ${itemRecQty}, Item_REC_Balance = ${itemRecBalance}`,
+                        //             `WHERE Doc_ID = ${formMasterList.refDocID} AND Line = ${line}`
+                        //         );
+                        //     }
+                        // });
+                    }
                 }
 
                 callInitialize();
@@ -454,13 +500,13 @@ function Form({ callInitialize, mode, name, maxRecNo }) {
 
             // ค้นหาข้อมูลที่ตรงกับ poSelected.Doc_No ใน PR_H และ AP_ID ใน apDataList
             const [getAllPoH, fromViewAp] = await Promise.all([
-                getAllData('View_PO_H', 'ORDER BY Doc_No DESC'),
+                getAllData('API_0201_PO_H', 'ORDER BY Doc_No DESC'),
                 apDataList.find(ap => ap.AP_Id === poSelected.AP_ID)
             ]);
 
-            const fromViewPrH = getAllPoH.find(po => po.Doc_No === poSelected.Doc_No);
+            const fromViewPoH = getAllPoH.find(po => po.Doc_No === poSelected.Doc_No);
 
-            if (!fromViewPrH || !fromViewAp) {
+            if (!fromViewPoH || !fromViewAp) {
                 throw new Error("Data not found");
             }
 
@@ -499,33 +545,38 @@ function Form({ callInitialize, mode, name, maxRecNo }) {
                 };
             };
 
-            const getAllItem = await getAllData('View_PO_D', 'ORDER BY Line ASC');
+            const getAllItem = await getAllData('API_0202_PO_D', 'ORDER BY Line ASC');
             const filterItem = getAllItem.filter(item => item.Doc_No === poSelected.Doc_No);
 
-            const getAllItemOld = await getAllData('View_PO_D', 'ORDER BY Line ASC');
+            const getAllItemOld = await getAllData('API_0202_PO_D', 'ORDER BY Line ASC');
             const filterItemOld = getAllItemOld.filter(item => item.Doc_No === poSelected.Doc_No);
 
             if (filterItem.length > 0) {
-                const newFormDetails = filterItem.map((item, index) => createNewRow(formDetailList.length + index, item));
+                // ฟังก์ชันเพื่อกรองและสร้างรายละเอียดใหม่
+                const newFormDetails = filterItem
+                    .filter(item => Number(item.Item_REC_Balance) > 0) // กรองเฉพาะรายการที่มี itemQty มากกว่า 0
+                    .map((item, index) => createNewRow(formDetailList.length + index, item));
 
                 setFormDetailList(newFormDetails);
 
                 const firstItem = filterItem[0];
 
                 setFormMasterList({
-                    refDocID: fromViewPrH.Doc_Id,
+                    ...formMasterList,
+                    refDocID: fromViewPoH.Doc_ID,
                     refDoc: poSelected.Doc_No,
-                    refDocDate: formatThaiDate(poSelected.Doc_Date),
-                    docDate: formatThaiDate(fromViewPrH.Doc_Date),
-                    docDueDate: formatThaiDate(fromViewPrH.Doc_DueDate),
-                    docRemark1: fromViewPrH.Doc_Remark1,
-                    docRemark2: fromViewPrH.Doc_Remark2,
-                    docType: fromViewPrH.Doc_Type,
-                    docFor: fromViewPrH.Doc_For,
-                    transportType: fromViewPrH.Transport_Type,
-                    discountValue: fromViewPrH.Discount_Value,
-                    creditTerm: fromViewPrH.CreditTerm,
-                    apID: fromViewPrH.AP_ID,
+                    refDocDate: formatThaiDateUi(poSelected.Doc_Date),
+                    docDate: formatThaiDate(new Date()),
+                    docDueDate: formatThaiDate(new Date()),
+                    docRemark1: fromViewPoH.Doc_Remark1,
+                    docRemark2: fromViewPoH.Doc_Remark2,
+                    docType: fromViewPoH.Doc_Type,
+                    docFor: fromViewPoH.Doc_For,
+                    transportType: fromViewPoH.Transport_Type,
+                    // discountValue: fromViewPoH.Discount_Value,
+                    discountValue: 0.00,
+                    creditTerm: fromViewPoH.CreditTerm,
+                    apID: fromViewPoH.AP_ID,
                     apCode: firstItem.AP_Code,
                     apName: firstItem.AP_Name,
                     apAdd1: firstItem.AP_Add1,
@@ -535,16 +586,17 @@ function Form({ callInitialize, mode, name, maxRecNo }) {
                     apZipcode: firstItem.AP_Zipcode,
                     apTaxNo: firstItem.AP_TaxNo,
                     createdByName: window.localStorage.getItem('name'),
-                    updateDate: fromViewPrH.Update_Date,
-                    updateByName: fromViewPrH.Update_By_Name
+                    createdDate: getCreateDateTime(new Date()),
+                    updateDate: fromViewPoH.Update_Date,
+                    updateByName: fromViewPoH.Update_By_Name
                 });
 
-                setIsVatChecked(fromViewPrH.IsVat === 1 ? true : false);
+                // setIsVatChecked(fromViewPoH.IsVat === 1 ? true : false);
 
-                const discountValueType = Number(fromViewPrH.Discount_Value_Type);
-                if (!isNaN(discountValueType)) {
-                    setSelectedDiscountValueType(discountValueType.toString());
-                }
+                // const discountValueType = Number(fromViewPoH.Discount_Value_Type);
+                // if (!isNaN(discountValueType)) {
+                //     setSelectedDiscountValueType(discountValueType.toString());
+                // }
 
             } else {
                 getAlert('FAILED', `ไม่พบข้อมูลที่ตรงกับเลขที่เอกสาร ${poSelected.Doc_No} กรุณาตรวจสอบและลองอีกครั้ง`);
@@ -627,9 +679,9 @@ function Form({ callInitialize, mode, name, maxRecNo }) {
         const newList = formDetailList.filter((_, i) => i !== index);
         setFormDetailList(newList);
     };
-    const handleVatChange = () => {
-        setIsVatChecked(prev => !prev);
-    };
+    // const handleVatChange = () => {
+    //     setIsVatChecked(prev => !prev);
+    // };
 
     // การคำนวณยอดรวม (totalPrice)
     useEffect(() => {
@@ -639,16 +691,16 @@ function Form({ callInitialize, mode, name, maxRecNo }) {
 
     // การคำนวณส่วนลด (receiptDiscount)
     useEffect(() => {
-        let discountValue = Number(formMasterList.discountValue || 0);
-        let receiptDiscount = 0;
+        // let discountValue = Number(formMasterList.discountValue || 0);
+        // let receiptDiscount = 0;
 
-        if (selectedDiscountValueType === '2') { // เปอร์เซ็นต์
-            receiptDiscount = (totalPrice / 100) * discountValue;
-        } else if (selectedDiscountValueType === '1') { // จำนวนเงิน
-            receiptDiscount = discountValue;
-        }
+        // if (selectedDiscountValueType === '2') { // เปอร์เซ็นต์
+        //     receiptDiscount = (totalPrice / 100) * discountValue;
+        // } else if (selectedDiscountValueType === '1') { // จำนวนเงิน
+        //     receiptDiscount = discountValue;
+        // }
 
-        setReceiptDiscount(receiptDiscount);
+        // setReceiptDiscount(receiptDiscount);
     }, [totalPrice, formMasterList.discountValue, selectedDiscountValueType]);
 
     // การคำนวณยอดหลังหักส่วนลด (subFinal)
@@ -659,8 +711,8 @@ function Form({ callInitialize, mode, name, maxRecNo }) {
 
     // การคำนวณ VAT (vatAmount)
     useEffect(() => {
-        const vat = isVatChecked ? subFinal * 0.07 : 0;
-        setVatAmount(vat);
+        // const vat = isVatChecked ? subFinal * 0.07 : 0;
+        // setVatAmount(vat);
     }, [subFinal, isVatChecked]);
 
     // การคำนวณยอดรวมทั้งสิ้น (grandTotal)
@@ -726,7 +778,7 @@ function Form({ callInitialize, mode, name, maxRecNo }) {
                             type="text"
                             className="form-control input-spacing"
                             name="createdDate"
-                            value={getCreateDateTime()}
+                            value={formMasterList.createdDate}
                             // onChange={handleChangeMaster}
                             disabled={true} />
                     </div>
@@ -924,7 +976,7 @@ function Form({ callInitialize, mode, name, maxRecNo }) {
                             type="date"
                             className="form-control input-spacing"
                             name="docDueDate"
-                            value={formMasterList.docDueDate || ''}
+                            value={formMasterList.recDueDate || ''}
                             onChange={handleChangeMaster} />
                     </div>
                 </div>
@@ -1076,6 +1128,7 @@ function Form({ callInitialize, mode, name, maxRecNo }) {
                                                         type="text"
                                                         className="form-control text-center"
                                                         value={item.itemQtyOld || 0}
+                                                        onChange={(e) => handleChangeDetail(index, 'itemQtyOld', e.target.value)}
                                                         disabled={true}
                                                     />
                                                 </td>
@@ -1180,21 +1233,35 @@ function Form({ callInitialize, mode, name, maxRecNo }) {
                 {/* Overlay */}
                 {showConfirmModal && <div className="modal-backdrop fade show"></div>}
 
-                <Summary
-                    formMasterList={formMasterList}
-                    handleChangeMaster={handleChangeMaster}
-                    selectedDiscountValueType={selectedDiscountValueType}
-                    handleCheckboxChange={handleCheckboxChange}
-                    receiptDiscount={receiptDiscount}
-                    formatCurrency={formatCurrency}
-                    totalPrice={totalPrice}
-                    subFinal={subFinal}
-                    isVatChecked={isVatChecked}
-                    handleVatChange={handleVatChange}
-                    vatAmount={vatAmount}
-                    grandTotal={grandTotal}
-                    disabled={true}
-                />
+                <div className="col-12">
+                    <div className="card">
+                        <div className="card-body">
+                            <div className="row">
+                                <div className="col-4" />
+                                <div className="col-4" />
+                                <div className="col-4">
+                                    <div hidden={false}>
+                                        <h5 className="text-end mb-3">ยอดท้ายบิล</h5>
+                                        <div className="row mt-3">
+                                            <div className="col-12">
+                                                <div className="d-flex justify-content-end align-items-center mt-1">
+                                                    <label><h5>รวมทั้งสิ้น</h5></label>
+                                                    <input
+                                                        type="text"
+                                                        className="form-control text-end input-spacing"
+                                                        style={{ width: '100px', color: 'red', fontWeight: 'bold', fontSize: '18px' }}
+                                                        value={formatCurrency(grandTotal || 0)}
+                                                        disabled={true}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <FormAction onSubmit={handleConfirmModal} mode={mode} />
             </div>
             <br />

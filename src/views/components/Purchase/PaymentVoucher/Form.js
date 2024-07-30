@@ -25,13 +25,16 @@ import {
     formatCurrency,
     formatDateTime,
     formatThaiDate,
+    formatThaiDateUi,
     formatThaiDateToDate,
+    formatThaiDateUiToDate,
     getMaxPayNo,
-    getCreateDateTime
+    getCreateDateTime,
+    setCreateDateTime
 } from '../../../../utils/SamuiUtils';
 
 function Form({ callInitialize, mode, name, maxDocNo }) {
-    const [formMasterList, setFormMasterList] = useState([]);
+    const [formMasterList, setFormMasterList] = useState(payMasterModel());
     const [formDetailList, setFormDetailList] = useState([]);
     const [tbDocType, setTbDocType] = useState([]);
     const [tbTransType, setTbTransType] = useState([]);
@@ -40,7 +43,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
     const [itemDataList, setItemDataList] = useState([]);
 
     // การคำนวณเงิน
-    const [selectedDiscountValueType, setSelectedDiscountValueType] = useState("1");
+    const [selectedDiscountValueType, setSelectedDiscountValueType] = useState("2");
     const [totalPrice, setTotalPrice] = useState(0);
     const [receiptDiscount, setReceiptDiscount] = useState(0);
     const [subFinal, setSubFinal] = useState(0);
@@ -152,11 +155,11 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                 const firstItem = filterItem[0];
 
                 setFormMasterList({
-                    refDocID: '1',
-                    refDoc: maxDocNo,
-                    refDocDate: formatThaiDate(fromViewPayH.Pay_Date),
-                    docDate: formatThaiDate(fromViewPayH.Pay_Date),
-                    docDueDate: formatThaiDate(fromViewPayH.Doc_DueDate),
+                    refDocID: fromViewPayH.Ref_DocID,
+                    refDoc: fromViewPayH.Ref_Doc,
+                    refDocDate: formatThaiDateUi(fromViewPayH.Ref_DocDate),
+                    docDate: formatThaiDate(new Date()),
+                    docDueDate: formatThaiDate(new Date()),
                     docRemark1: fromViewPayH.Doc_Remark1,
                     docRemark2: fromViewPayH.Doc_Remark2,
                     docType: fromViewPayH.Doc_Type,
@@ -172,7 +175,11 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                     apAdd3: firstItem.AP_Add3,
                     apProvince: firstItem.AP_Province,
                     apZipcode: firstItem.AP_Zipcode,
-                    apTaxNo: firstItem.AP_TaxNo
+                    apTaxNo: firstItem.AP_TaxNo,
+                    createdByName: firstItem.Created_By_Name,
+                    createdDate: setCreateDateTime(new Date(firstItem.Created_Date)),
+                    updateDate: firstItem.Update_Date,
+                    updateByName: firstItem.Update_By_Name
                 });
 
                 setIsVatChecked(fromViewPayH.IsVat === 1 ? true : false);
@@ -187,11 +194,6 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
         } catch (error) {
             getAlert("FAILED", error.message || error);
         }
-    };
-
-    const handleCheckboxChange = (event) => {
-        const { name } = event.target;
-        setSelectedDiscountValueType(selectedDiscountValueType === name ? null : name);
     };
 
     const handleSubmit = async () => {
@@ -222,7 +224,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                 pay_type: docRefType === '1' ? parseInt("1", 10) : parseInt("2", 10),
                 ref_doc_id: formMasterList.refDocID,
                 ref_doc: formMasterList.refDoc,
-                ref_doc_date: formMasterList.refDocDate,
+                ref_doc_date: formatThaiDateUiToDate(formMasterList.refDocDate),
                 comp_id: window.localStorage.getItem('company'),
                 ref_project_id: formMasterList.refProjectID,
                 ref_project_no: formMasterList.refProjectNo,
@@ -246,7 +248,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                 credit_term_2_remark: formMasterList.creditTerm2Remark,
                 acc_code: "0000",
                 emp_name: formMasterList.empName,
-                created_date: formatThaiDateToDate(formMasterList.createdDate),
+                created_date: formatThaiDateUiToDate(formMasterList.createdDate),
                 created_by_name: window.localStorage.getItem('name'),
                 created_by_id: "1",
                 update_date: formMasterList.updateDate,
@@ -394,112 +396,6 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
     const [showRecModal, setShowRecModal] = useState(false);
     const handleRecShow = () => setShowRecModal(true);
     const handleRecClose = () => setShowRecModal(false);
-    // const onRowSelectRec = async (recSelected) => {
-    //     try {
-    //         // เคลียร์ค่าใน formMasterList และ formDetailList
-    //         setFormMasterList({});
-    //         setFormDetailList([]);
-
-    //         // ค้นหาข้อมูลที่ตรงกับ recSelected.Rec_No ใน REC_H และ AP_ID ใน apDataList
-    //         const [getAllRecH, fromViewAp] = await Promise.all([
-    //             getAllData('API_0301_REC_H', 'ORDER BY Rec_No DESC'),
-    //             apDataList.find(ap => ap.AP_Id === recSelected.AP_ID)
-    //         ]);
-
-    //         const fromViewRecH = getAllRecH.find(po => po.Rec_No === recSelected.Rec_No);
-
-    //         if (!fromViewRecH || !fromViewAp) {
-    //             throw new Error("Data not found");
-    //         }
-
-    //         // ฟังก์ชันเพื่อสร้างโมเดลใหม่สำหรับแต่ละแถวและคำนวณ itemTotal
-    //         const createNewRow = (index, itemSelected) => {
-    //             const itemQty = Number(itemSelected.Item_Qty) || 0;
-    //             const itemPriceUnit = Number(itemSelected.Item_Price_Unit) || 0;
-    //             const itemDiscount = Number(itemSelected.Item_Discount) || 0;
-    //             let itemTotal = itemQty * itemPriceUnit;
-
-    //             if (itemSelected.Item_DisType === 2) {
-    //                 itemTotal -= (itemDiscount / 100) * itemTotal; // ลดตามเปอร์เซ็นต์
-    //             } else {
-    //                 itemTotal -= itemDiscount; // ลดตามจำนวนเงิน
-    //             }
-
-    //             return {
-    //                 ...payDetailModel(index + 1),
-    //                 line: itemSelected.Line,
-    //                 itemId: itemSelected.Item_Id,
-    //                 recNo: recSelected.Rec_No,
-    //                 itemCode: itemSelected.Item_Code,
-    //                 itemName: itemSelected.Item_Name,
-    //                 itemQty,
-    //                 itemUnit: itemSelected.Item_Unit,
-    //                 itemPriceUnit,
-    //                 itemDiscount,
-    //                 itemDisType: String(itemSelected.Item_DisType),
-    //                 itemTotal,
-    //                 itemStatus: itemSelected.Item_Status,
-    //                 whId: itemSelected.WH_ID,
-    //                 whName: itemSelected.WH_Name,
-    //                 zoneId: itemSelected.Zone_ID,
-    //                 ltId: itemSelected.LT_ID,
-    //                 dsSeq: itemSelected.DS_SEQ,
-    //             };
-    //         };
-
-    //         const getAllItem = await getAllData('API_0302_REC_D', 'ORDER BY Line ASC');
-    //         const filterItem = getAllItem.filter(item => item.Rec_No === recSelected.Rec_No);
-
-    //         if (filterItem.length > 0) {
-    //             const newFormDetails = filterItem.map((item, index) => createNewRow(formDetailList.length + index, item));
-
-    //             setFormDetailList(newFormDetails);
-
-    //             const firstItem = filterItem[0];
-
-    //             setFormMasterList({
-    //                 refDocID: fromViewRecH.Rec_Id,
-    //                 // refDoc: recSelected.Rec_No,
-    //                 refDocDate: formatThaiDate(recSelected.Rec_Date),
-    //                 docDate: formatThaiDate(fromViewRecH.Rec_Date),
-    //                 docDueDate: formatThaiDate(fromViewRecH.Rec_DueDate),
-    //                 docRemark1: fromViewRecH.Doc_Remark1,
-    //                 docRemark2: fromViewRecH.Doc_Remark2,
-    //                 docType: fromViewRecH.Doc_Type,
-    //                 docFor: fromViewRecH.Doc_For,
-    //                 transportType: fromViewRecH.Transport_Type,
-    //                 discountValue: fromViewRecH.Discount_Value,
-    //                 creditTerm: fromViewRecH.CreditTerm,
-    //                 apID: fromViewRecH.AP_ID,
-    //                 apCode: firstItem.AP_Code,
-    //                 apName: firstItem.AP_Name,
-    //                 apAdd1: firstItem.AP_Add1,
-    //                 apAdd2: firstItem.AP_Add2,
-    //                 apAdd3: firstItem.AP_Add3,
-    //                 apProvince: firstItem.AP_Province,
-    //                 apZipcode: firstItem.AP_Zipcode,
-    //                 apTaxNo: firstItem.AP_TaxNo,
-    //                 createdByName: window.localStorage.getItem('name'),
-    //                 updateDate: fromViewRecH.Update_By_Name,
-    //                 updateByName: fromViewRecH.Update_Date,
-    //             });
-
-    //             setIsVatChecked(fromViewRecH.IsVat === 1 ? true : false);
-
-    //             const discountValueType = Number(fromViewRecH.Discount_Value_Type);
-    //             if (!isNaN(discountValueType)) {
-    //                 setSelectedDiscountValueType(discountValueType.toString());
-    //             }
-
-    //         } else {
-    //             getAlert('FAILED', `ไม่พบข้อมูลที่ตรงกับเลขที่เอกสาร ${recSelected.Doc_No} กรุณาตรวจสอบและลองอีกครั้ง`);
-    //         }
-
-    //         handleRecClose(); // ปิด modal หลังจากเลือก
-    //     } catch (error) {
-    //         getAlert("FAILED", error.message || error);
-    //     }
-    // };
     const onRowSelectRec = async (recSelected) => {
         try {
             // เคลียร์ค่าใน formMasterList และ formDetailList
@@ -514,8 +410,6 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
 
             // ใช้ Set เพื่อหลีกเลี่ยงการค้นหาซ้ำ
             const recNoSet = new Set(recSelected.map(rec => rec.Rec_No));
-
-            // แปลง recNoSet เป็น Array
             const recNoArray = Array.from(recNoSet);
 
             // ฟังก์ชันเพื่อสร้างโมเดลใหม่สำหรับแต่ละแถวและคำนวณ itemTotal
@@ -582,8 +476,9 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
             setFormDetailList(allDetails);
 
             setFormMasterList({
+                ...formMasterList,
                 refDocID: results[0].fromViewRecH.Rec_Id,
-                refDocDate: formatThaiDate(recSelected[0].Rec_Date),
+                refDocDate: formatThaiDateUi(recSelected[0].Rec_Date),
                 docDate: formatThaiDate(results[0].fromViewRecH.Rec_Date),
                 docDueDate: formatThaiDate(results[0].fromViewRecH.Rec_DueDate),
                 docRemark1: results[0].fromViewRecH.Doc_Remark1,
@@ -591,8 +486,6 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                 docType: results[0].fromViewRecH.Doc_Type,
                 docFor: results[0].fromViewRecH.Doc_For,
                 transportType: results[0].fromViewRecH.Transport_Type,
-                // discountValue: results[0].fromViewRecH.Discount_Value,
-                // creditTerm: results[0].fromViewRecH.CreditTerm,
                 apID: results[0].fromViewRecH.AP_ID,
                 apCode: firstItem.itemCode,
                 apName: firstItem.itemName,
@@ -603,16 +496,43 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                 apZipcode: firstItem.itemZipcode,
                 apTaxNo: firstItem.itemTaxNo,
                 createdByName: window.localStorage.getItem('name'),
+                createdDate: getCreateDateTime(new Date()),
                 updateDate: results[0].fromViewRecH.Update_By_Name,
                 updateByName: results[0].fromViewRecH.Update_Date,
             });
 
-            setIsVatChecked(results[0].fromViewRecH.IsVat === 1 ? true : false);
+            // ดึงข้อมูล PO สำหรับการคำนวณส่วนลด
+            const [getViewPoH] = await Promise.all([
+                getAllData('API_0201_PO_H', '')
+            ]);
 
-            const discountValueType = Number(results[0].fromViewRecH.Discount_Value_Type);
-            if (!isNaN(discountValueType)) {
-                setSelectedDiscountValueType(discountValueType.toString());
-            }
+            let receiptDiscount = 0;
+            let receiptVatAmount = 0;
+
+            recSelected.forEach((rec) => {
+                const relatedPoH = getViewPoH.find(po => po.Doc_ID === rec.Ref_DocID);
+
+                if (relatedPoH) {
+                    // คำนวณส่วนลด
+                    const discountValue = relatedPoH.Discount_Value_Type === 2
+                        ? (relatedPoH.Discount_Value / 100) * rec.NetTotal // ส่วนลดเป็นเปอร์เซ็นต์
+                        : relatedPoH.Discount_Value; // ส่วนลดเป็นจำนวนเงิน
+
+                    receiptDiscount += discountValue;
+
+                    // คำนวณ VAT ถ้า IsVat เท่ากับ 1
+                    if (relatedPoH.IsVat === 1) {
+                        // คำนวณจำนวน VAT
+                        const vatAmount = (rec.NetTotal - discountValue) * 0.07; // 7% VAT
+                        receiptVatAmount += vatAmount;
+                        setIsVatChecked(true);
+                    }
+                }
+            });
+
+            // ตั้งค่าส่วนลดและ VAT ใน State
+            setReceiptDiscount(receiptDiscount);
+            setVatAmount(receiptVatAmount);
 
             handleRecClose(); // ปิด modal หลังจากเลือก
         } catch (error) {
@@ -627,7 +547,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
             }
 
             handleRecClose();
-            console.debug("Selected Receipts:", recSelected);
+            // console.debug("Selected Receipts:", recSelected);
             onRowSelectRec(recSelected)
 
             // แจ้งเตือนผู้ใช้ว่าการเลือกสำเร็จ
@@ -702,9 +622,9 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
         const newList = formDetailList.filter((_, i) => i !== index);
         setFormDetailList(newList);
     };
-    const handleVatChange = () => {
-        setIsVatChecked(prev => !prev);
-    };
+    // const handleVatChange = () => {
+    //     setIsVatChecked(prev => !prev);
+    // };
 
     // การคำนวณยอดรวม (totalPrice)
     useEffect(() => {
@@ -714,19 +634,19 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
 
     // การคำนวณส่วนลด (receiptDiscount)
     useEffect(() => {
-        let discountValue = Number(formMasterList.discountValue || 0);
-        let receiptDiscount = 0;
+        // let discountValue = Number(formMasterList.discountValue || 0);
+        // let receiptDiscount = 0;
 
-        if (selectedDiscountValueType === '2') { // เปอร์เซ็นต์
-            receiptDiscount = (totalPrice / 100) * discountValue;
-        } else if (selectedDiscountValueType === '1') { // จำนวนเงิน
-            receiptDiscount = discountValue;
-        }
+        // if (selectedDiscountValueType === '2') { // เปอร์เซ็นต์
+        //     receiptDiscount = (totalPrice / 100) * discountValue;
+        // } else if (selectedDiscountValueType === '1') { // จำนวนเงิน
+        //     receiptDiscount = discountValue;
+        // }
 
-        setReceiptDiscount(receiptDiscount);
+        // setReceiptDiscount(receiptDiscount);
     }, [totalPrice, formMasterList.discountValue, selectedDiscountValueType]);
 
-    // การคำนวณยอดหลังหักส่วนลด (subFinal)
+    // การคำนวณยอดหลังหักส่วนลด (subFinal) (ไม่ได้ใช้)
     useEffect(() => {
         const subFinal = totalPrice - receiptDiscount;
         setSubFinal(subFinal);
@@ -734,8 +654,8 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
 
     // การคำนวณ VAT (vatAmount)
     useEffect(() => {
-        const vat = isVatChecked ? subFinal * 0.07 : 0;
-        setVatAmount(vat);
+        //const vat = isVatChecked ? subFinal * 0.07 : 0;
+        //setVatAmount(vat);
     }, [subFinal, isVatChecked]);
 
     // การคำนวณยอดรวมทั้งสิ้น (grandTotal)
@@ -801,7 +721,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             type="text"
                             className="form-control input-spacing"
                             name="createdDate"
-                            value={getCreateDateTime()}
+                            value={formMasterList.createdDate}
                             // onChange={handleChangeMaster}
                             disabled={true} />
                     </div>
@@ -1028,7 +948,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                         <input
                             type="date"
                             className="form-control input-spacing"
-                            name="docDueDate"
+                            name="recDueDate"
                             value={formMasterList.docDueDate}
                             onChange={handleChangeMaster} />
                     </div>
@@ -1228,34 +1148,74 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                         </div>
                     </div>
                 </div>
-
-                {/* <ItemTable
-                    formDetailList={formDetailList}
-                    handleChangeDetail={handleChangeDetail}
-                    handleRemoveRow={handleRemoveRow}
-                    formatCurrency={formatCurrency}
-                    showItemModal={showItemModal}
-                    handleItemClose={handleItemClose}
-                    itemDataList={itemDataList}
-                    onRowSelectItem={onRowSelectItem}
-                    handleItemShow={handleItemShow}
-                    disabled={docRefType === '1' ? true : false}
-                /> */}
-                <Summary
-                    formMasterList={formMasterList}
-                    handleChangeMaster={handleChangeMaster}
-                    selectedDiscountValueType={selectedDiscountValueType}
-                    handleCheckboxChange={handleCheckboxChange}
-                    receiptDiscount={receiptDiscount}
-                    formatCurrency={formatCurrency}
-                    totalPrice={totalPrice}
-                    subFinal={subFinal}
-                    isVatChecked={isVatChecked}
-                    handleVatChange={handleVatChange}
-                    vatAmount={vatAmount}
-                    grandTotal={grandTotal}
-                    disabled={docRefType === '1' ? true : false}
-                />
+                <div className="col-12">
+                    <div className="card">
+                        <div className="card-body">
+                            <div className="row">
+                                <div className="col-4" />
+                                <div className="col-4" />
+                                <div className="col-4">
+                                    <div>
+                                        <h5>ยอดท้ายบิล</h5>
+                                        <div className="row mt-3">
+                                            <div className="col-12">
+                                                <div className="d-flex justify-content-end align-items-center mt-1">
+                                                    <label>รวมราคา</label>
+                                                    <input
+                                                        type="text"
+                                                        className="form-control text-end input-spacing"
+                                                        style={{ width: '100px' }}
+                                                        value={formatCurrency(totalPrice || 0)}
+                                                        disabled={true}
+                                                    />
+                                                </div>
+                                                <div className="d-flex justify-content-end align-items-center mt-1">
+                                                    <label>รวมส่วนลด</label>
+                                                    <input
+                                                        type="text"
+                                                        className="form-control text-end input-spacing"
+                                                        style={{ width: '100px' }}
+                                                        value={formatCurrency(receiptDiscount || 0)}
+                                                        disabled={true}
+                                                    />
+                                                </div>
+                                                <hr />
+                                                <div className="d-flex justify-content-end align-items-center mt-1">
+                                                    <input
+                                                        type="checkbox"
+                                                        className="mr-2"
+                                                        checked={isVatChecked}
+                                                        // onChange={handleVatChange}
+                                                        disabled={true}
+                                                    />
+                                                    <label className="mr-2">VAT (7%)</label>
+                                                    <input
+                                                        type="text"
+                                                        className="form-control text-end input-spacing"
+                                                        style={{ width: '100px' }}
+                                                        value={formatCurrency(vatAmount || 0)}
+                                                        disabled={true}
+                                                    />
+                                                </div>
+                                                <hr />
+                                                <div className="d-flex justify-content-end align-items-center mt-1">
+                                                    <label><h5>รวมทั้งสิ้น</h5></label>
+                                                    <input
+                                                        type="text"
+                                                        className="form-control text-end input-spacing"
+                                                        style={{ width: '100px', color: 'red', fontWeight: 'bold', fontSize: '18px' }}
+                                                        value={formatCurrency(grandTotal || 0)}
+                                                        disabled={true}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <FormAction onSubmit={handleSubmit} mode={mode} />
             </div>
             <br />

@@ -151,7 +151,6 @@ const getViewItem = async () => {
 
 // Popup แจ้งเตือน ต่างๆ ใช้ status = OK, FAILED
 const getAlert = (status, message) => {
-
     let icon = "";
     let confirmButtonClass = "";
 
@@ -176,6 +175,9 @@ const getAlert = (status, message) => {
             console.error(`Invalid status: ${status}`);
             return;
     }
+
+    // เลื่อนหน้าขึ้นด้านบนสุด
+    window.scrollTo(0, 0);
 
     Swal.fire({
         title: message,
@@ -222,7 +224,7 @@ const formatDateTime = (date) => {
     return `${year}${month}${day}${hours}${minutes}${seconds}${milliseconds}`;
 };
 
-// ฟังก์ชันเพื่อแปลงวันที่เป็นปี พ.ศ.
+// ฟังก์ชันเพื่อแปลงวันที่เป็นปี พ.ศ. yyyy-mm-dd
 const formatThaiDate = (dateString) => {
     const date = new Date(dateString);
     if (isNaN(date.getTime())) {
@@ -230,6 +232,16 @@ const formatThaiDate = (dateString) => {
     }
     const year = date.getFullYear() + 543;
     return `${year}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
+};
+
+// ฟังก์ชันเพื่อแปลงวันที่เป็นปี พ.ศ. dd-mm-yyyy
+const formatThaiDateUi = (dateString) => {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+        throw new Error("Invalid date");
+    }
+    const year = date.getFullYear() + 543;
+    return `${date.getDate().toString().padStart(2, '0')}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${year}`;
 };
 
 // ฟังก์ชันสำหรับจัดรุปแบบวันที่ให้เป็น "2567-07-18 00:00:00.000 เป็น 2024-07-18 00:00:00.000" เพื่อบันทึกลง Database
@@ -261,6 +273,40 @@ const formatThaiDateToDate = (date) => {
     // ตรวจสอบว่าปี ค.ศ. ถูกต้องหรือไม่
     if (isNaN(christianYear)) {
         //console.error('Invalid year in date:', date);
+        return null;
+    }
+
+    // รวมปี ค.ศ. เดือน วัน และเวลาเข้าด้วยกัน
+    return timePart
+        ? `${christianYear}-${month}-${day} ${timePart}`
+        : `${christianYear}-${month}-${day}`;
+};
+
+// ฟังก์ชันสำหรับจัดรุปแบบวันที่ให้เป็น "18-07-2567 เป็น 2024-07-18 00:00:00.000" เพื่อบันทึกลง Database
+const formatThaiDateUiToDate = (date) => {
+    if (!date || typeof date !== 'string') {
+        return null; // หรือทำการจัดการข้อผิดพลาดที่เหมาะสม
+    }
+
+    // แยกวันที่และเวลาจากสตริง
+    const [datePart, timePart] = date.split(' ');
+
+    if (!datePart) {
+        return null;
+    }
+
+    // แยกปี, เดือน, และวัน
+    const [day, month, year] = datePart.split('-');
+
+    if (!day || !month || !year) {
+        return null;
+    }
+
+    // ตรวจสอบและแปลงปีพุทธศักราชเป็นคริสต์ศักราช
+    const christianYear = Number(year) - 543;
+
+    // ตรวจสอบว่าปี ค.ศ. ถูกต้องหรือไม่
+    if (isNaN(christianYear) || christianYear < 0) {
         return null;
     }
 
@@ -378,13 +424,26 @@ const incrementRecNo = (recNo) => {
 };
 
 // SET CreateDateTime
-const getCreateDateTime = () => {
-    const today = new Date();
+const getCreateDateTime = (date) => {
+    const today = date;
     const year = today.getFullYear() + 543; // แปลงเป็นปี พ.ศ.
     const day = today.getDate().toString().padStart(2, '0');
     const month = (today.getMonth() + 1).toString().padStart(2, '0');
     const formattedNewDate = `${day}-${month}-${year}`;
     const formattedTime = today.toTimeString().split(' ')[0]; // แยกเอาเฉพาะเวลา
+    return `${formattedNewDate} ${formattedTime}`;
+};
+
+const setCreateDateTime = (date) => {
+    const today = new Date(date);
+    const year = today.getUTCFullYear() + 543; // แปลงเป็นปี พ.ศ. และใช้ UTC
+    const day = today.getUTCDate().toString().padStart(2, '0');
+    const month = (today.getUTCMonth() + 1).toString().padStart(2, '0');
+    const formattedNewDate = `${day}-${month}-${year}`;
+    const hours = today.getUTCHours().toString().padStart(2, '0');
+    const minutes = today.getUTCMinutes().toString().padStart(2, '0');
+    const seconds = today.getUTCSeconds().toString().padStart(2, '0');
+    const formattedTime = `${hours}:${minutes}:${seconds}`;
     return `${formattedNewDate} ${formattedTime}`;
 };
 
@@ -447,11 +506,14 @@ export {
     formatDate,
     formatDateTime,
     formatThaiDate,
+    formatThaiDateUi,
     formatThaiDateToDate,
+    formatThaiDateUiToDate,
     getMaxDocNo,
     getMaxPayNo,
     getMaxRecNo,
     getCreateDateTime,
+    setCreateDateTime,
     updateStatusByNo,
     updateQty,
 };

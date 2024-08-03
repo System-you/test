@@ -7,7 +7,6 @@ import Breadcrumbs from '../../Breadcrumbs';
 import RecModal from '../../Modal/RecModal';
 import ApModal from '../../Modal/ApModal';
 import ItemModal from '../../Modal/ItemModal';
-import Summary from '../../Footer/Summary';
 import FormAction from '../../Actions/FormAction';
 
 // Model
@@ -34,7 +33,7 @@ import {
 } from '../../../../utils/SamuiUtils';
 
 function Form({ callInitialize, mode, name, maxDocNo }) {
-    const [formMasterList, setFormMasterList] = useState(payMasterModel());
+    const [formMasterList, setFormMasterList] = useState([payMasterModel()]);
     const [formDetailList, setFormDetailList] = useState([]);
     const [tbDocType, setTbDocType] = useState([]);
     const [tbTransType, setTbTransType] = useState([]);
@@ -51,7 +50,12 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
     const [isVatChecked, setIsVatChecked] = useState(false);
     const [vatAmount, setVatAmount] = useState(0);
 
+    // ใช้สำหรับการ Rendered Form ต่างๆ
     const [docRefType, setDocTypeRef] = useState("1");
+
+    // ใช้สำหรับการทำเรื่องจ่ายเป็นงวด
+    const [paymentStatus, setPaymentStatus] = useState('oneTime'); // สถานะการจ่าย (จ่ายครั้งเดียว หรือ จ่ายเป็นงวด)
+    const [installmentCount, setInstallmentCount] = useState(1); // จำนวนงวด
 
     useEffect(() => {
         initialize();
@@ -268,7 +272,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
             };
 
             // For Log PAY_H
-            console.log("formMasterData : ", formMasterData);
+            console.debug("formMasterData : ", formMasterData);
             getAlert("FAILED", "อยู่ในระหว่างการปรับปรุง ยังไม่สามารถบันทึกได้");
 
             // ส่งข้อมูลหลักไปยัง API
@@ -330,15 +334,27 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
         }
     };
 
+    // ฟังก์ชันสำหรับจัดการการเปลี่ยนแปลงใน formMasterList
     const handleChangeMaster = (event) => {
         const { name, value } = event.target;
-        setFormMasterList(prevState => ({
-            ...prevState,
-            [name]: value
-        }));
+
+        // อัปเดตทุกรายการใน formMasterList
+        setFormMasterList(prevState =>
+            prevState.map(item => ({
+                ...item,
+                [name]: value
+            }))
+        );
     };
 
+    // ฟังก์ชันสำหรับจัดการการเปลี่ยนแปลงใน formDetailList
     const handleChangeDetail = (index, field, value) => {
+        // ตรวจสอบว่าค่าที่กรอกเข้ามาเป็นตัวเลขเท่านั้น
+        if (!/^\d*$/.test(value)) {
+            //getAlert("FAILED", "กรุณากรอกเฉพาะตัวเลขเท่านั้น");
+            return;
+        }
+
         const updatedList = [...formDetailList];
         updatedList[index][field] = value;
 
@@ -359,10 +375,25 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
         setFormDetailList(updatedList);
     };
 
-    // ตรวจสอบค่าใน handleChangePayType
+    // ฟังก์ชันสำหรับจัดการการเปลี่ยนแปลงใน formMasterList (action สำหรับตาราง)
+    const handleChangeMasterList = (index, field, value) => {
+        // ตรวจสอบว่า field เป็น 'amountPay' และค่าที่กรอกเข้ามาเป็นตัวเลขหรือไม่
+        if (field === 'amountPay' && !/^\d*$/.test(value)) {
+            // แจ้งเตือนหากไม่ใช่ตัวเลข
+            // getAlert("FAILED", "กรุณากรอกเฉพาะตัวเลขเท่านั้น");
+            return;
+        }
+
+        const updatedList = [...formMasterList];
+        updatedList[index][field] = value;
+        setFormMasterList(updatedList);
+    };
+
+    // ฟังก์ชันสำหรับจัดการการเปลี่ยนแปลงของเอกสารอ้างอิง
     const handleChangePayType = (value) => {
-        setFormMasterList(prevState => ({
-            ...prevState,
+        // รีเซ็ตฟอร์ม
+        setFormMasterList(prevState => ([{
+            ...prevState[0],
             refDocID: null,
             refDoc: null,
             refDocDate: null,
@@ -384,13 +415,95 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
             apProvince: null,
             apZipcode: null,
             apTaxNo: null
-        }));
+        }]));
 
-        const newPayMasterModel = payMasterModel(); // เก็บไว้ในตัวแปรก่อน
-        setFormMasterList(newPayMasterModel); // ตรวจสอบให้แน่ใจว่าเป็นอาร์เรย์
+        // ใช้ฟังก์ชัน payMasterModel และตรวจสอบให้แน่ใจว่าเป็นอาร์เรย์
+        const newPayMasterModel = [payMasterModel()];
+        setFormMasterList(newPayMasterModel);
         setFormDetailList([]);
+        setSelectedDiscountValueType("2");
+        setTotalPrice(0);
+        setReceiptDiscount(0);
+        setSubFinal(0);
+        setGrandTotal(0);
+        setIsVatChecked(false);
+        setVatAmount(0);
         setDocTypeRef(value);
     };
+
+    // ฟังก์ชันสำหรับจัดการการเปลี่ยนแปลงของสถานะจ่าย
+    const handlePaymentStatusChange = (status) => {
+        // เคลียค่าทุกครั้งยกเว้นตำแหน่งที่ 0
+        setInstallmentCount(1);
+        setPaymentStatus(status);
+
+        // สร้าง default model ที่ใช้เป็นค่าเริ่มต้น
+        const defaultModel = payMasterModel();
+
+        // เก็บค่าของ formMasterList ที่มีอยู่เดิม
+        const currentList = formMasterList[0] ? formMasterList[0] : defaultModel;
+
+        if (status === 'oneTime') {
+            // ตั้งค่าให้กับรายการเดียว โดยเก็บค่าเดิมไว้ที่ตำแหน่งที่ 0
+            setFormMasterList([{
+                ...currentList,
+                amountPay: grandTotal,
+                docRemark1: '',
+                docRemark2: ''
+            }]);
+        } else {
+            // สร้างรายการตามจำนวน installmentCount โดยไม่เคลียร์ datePay
+            const newList = Array.from({ length: installmentCount }, (v, i) => {
+                let amountPay = (grandTotal / installmentCount).toFixed(2);
+                if (i === installmentCount - 1) {
+                    amountPay = (grandTotal - (amountPay * (installmentCount - 1))).toFixed(2);
+                }
+                return {
+                    ...defaultModel,
+                    amountPay: amountPay,
+                    docRemark1: '',
+                    docRemark2: ''
+                };
+            });
+            // ตั้งค่าให้กับ formMasterList โดยเก็บค่าเดิมไว้ที่ตำแหน่งที่ 0 และแทนที่ค่าใหม่
+            newList[0] = currentList;
+            setFormMasterList(newList);
+        }
+    };
+
+    // ฟังก์ชันสำหรับจัดการการเปลี่ยนแปลงของจำนวนงวด
+    const handleInstallmentCountChange = (value) => {
+        if (!/^\d*$/.test(value)) return;  // ตรวจสอบว่าเป็นตัวเลขเท่านั้น
+
+        const count = parseInt(value, 10);  // แปลงค่าจาก string เป็น number
+
+        // สร้าง default model ที่ใช้เป็นค่าเริ่มต้น
+        const defaultModel = payMasterModel();
+
+        // คำนวณ amountPay สำหรับแต่ละงวด
+        const installmentAmount = (grandTotal / count).toFixed(2);
+        let newList = Array.from({ length: count }, (v, i) => {
+            let amountPay = installmentAmount;
+            if (i === count - 1) {
+                amountPay = (grandTotal - (installmentAmount * (count - 1))).toFixed(2);
+            }
+            return {
+                ...defaultModel,
+                amountPay: amountPay,
+                docRemark1: '', // เคลียร์ค่าเฉพาะที่ต้องการ
+                docRemark2: ''  // เคลียร์ค่าเฉพาะที่ต้องการ
+            };
+        });
+
+        setInstallmentCount(count);  // ตั้งค่าจำนวนงวด
+        setFormMasterList(newList);  // อัปเดต formMasterList
+    };
+
+    // ฟังก์ชันสำหรับลบแถวใน formMasterList
+    // const handleRemoveMasterRow = (index) => {
+    //     const updatedList = formMasterList.filter((_, i) => i !== index);
+    //     setFormMasterList(updatedList);
+    // };
 
     // SET REC
     const [showRecModal, setShowRecModal] = useState(false);
@@ -399,7 +512,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
     const onRowSelectRec = async (recSelected) => {
         try {
             // เคลียร์ค่าใน formMasterList และ formDetailList
-            setFormMasterList({});
+            setFormMasterList([payMasterModel()]);
             setFormDetailList([]);
 
             // ค้นหาข้อมูลที่ตรงกับ recSelected.Rec_No ใน REC_H และ AP_ID ใน apDataList
@@ -472,35 +585,6 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
             const allDetails = results.flatMap(result => result.newFormDetails);
             const firstItem = allDetails[0];
 
-            // ตั้งค่า formDetailList และ formMasterList
-            setFormDetailList(allDetails);
-
-            setFormMasterList({
-                ...formMasterList,
-                refDocID: results[0].fromViewRecH.Rec_Id,
-                refDocDate: formatThaiDateUi(recSelected[0].Rec_Date),
-                docDate: formatThaiDate(results[0].fromViewRecH.Rec_Date),
-                docDueDate: formatThaiDate(results[0].fromViewRecH.Rec_DueDate),
-                docRemark1: results[0].fromViewRecH.Doc_Remark1,
-                docRemark2: results[0].fromViewRecH.Doc_Remark2,
-                docType: results[0].fromViewRecH.Doc_Type,
-                docFor: results[0].fromViewRecH.Doc_For,
-                transportType: results[0].fromViewRecH.Transport_Type,
-                apID: results[0].fromViewRecH.AP_ID,
-                apCode: firstItem.itemCode,
-                apName: firstItem.itemName,
-                apAdd1: firstItem.itemAdd1,
-                apAdd2: firstItem.itemAdd2,
-                apAdd3: firstItem.itemAdd3,
-                apProvince: firstItem.itemProvince,
-                apZipcode: firstItem.itemZipcode,
-                apTaxNo: firstItem.itemTaxNo,
-                createdByName: window.localStorage.getItem('name'),
-                createdDate: getCreateDateTime(new Date()),
-                updateDate: results[0].fromViewRecH.Update_By_Name,
-                updateByName: results[0].fromViewRecH.Update_Date,
-            });
-
             // ดึงข้อมูล PO สำหรับการคำนวณส่วนลด
             const [getViewPoH] = await Promise.all([
                 getAllData('API_0201_PO_H', '')
@@ -529,6 +613,38 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                     }
                 }
             });
+
+            // ตั้งค่า formDetailList และ formMasterList
+            setFormDetailList(allDetails);
+
+            // อัปเดต formMasterList สำหรับทุกรายการ
+            setFormMasterList(prevState =>
+                prevState.map(item => ({
+                    ...item,
+                    // refDocID: results[0].fromViewRecH.Rec_Id,
+                    // refDocDate: formatThaiDateUi(recSelected[0].Rec_Date),
+                    docDate: formatThaiDate(results[0].fromViewRecH.Rec_Date),
+                    docDueDate: formatThaiDate(results[0].fromViewRecH.Rec_DueDate),
+                    // docRemark1: results[0].fromViewRecH.Doc_Remark1,
+                    // docRemark2: results[0].fromViewRecH.Doc_Remark2,
+                    // docType: results[0].fromViewRecH.Doc_Type,
+                    // docFor: results[0].fromViewRecH.Doc_For,
+                    transportType: results[0].fromViewRecH.Transport_Type,
+                    apID: results[0].fromViewRecH.AP_ID,
+                    apCode: results[0].fromViewRecH.AP_Code,
+                    apName: results[0].fromViewRecH.AP_Name,
+                    apAdd1: results[0].fromViewRecH.AP_Add1,
+                    apAdd2: results[0].fromViewRecH.AP_Add2,
+                    apAdd3: results[0].fromViewRecH.AP_Add3,
+                    apProvince: results[0].fromViewRecH.AP_Province,
+                    apZipcode: results[0].fromViewRecH.AP_Zipcode,
+                    apTaxNo: results[0].fromViewRecH.AP_TaxNo,
+                    createdByName: window.localStorage.getItem('name'),
+                    createdDate: getCreateDateTime(new Date()),
+                    updateDate: results[0].fromViewRecH.Update_By_Name,
+                    updateByName: results[0].fromViewRecH.Update_Date,
+                }))
+            );
 
             // ตั้งค่าส่วนลดและ VAT ใน State
             setReceiptDiscount(receiptDiscount);
@@ -564,17 +680,21 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
     const handleApClose = () => setShowApModal(false);
     const onRowSelectAp = (apSelected) => {
         try {
-            setFormMasterList({
-                ...formMasterList,
-                apID: apSelected.AP_Id,
-                apCode: apSelected.AP_Code,
-                apName: apSelected.AP_Name,
-                apAdd1: apSelected.AP_Add1,
-                apAdd2: apSelected.AP_Add2,
-                apAdd3: apSelected.AP_Add3,
-                apProvince: apSelected.AP_Province,
-                apZipcode: apSelected.AP_Zipcode,
-                apTaxNo: apSelected.AP_TaxNo
+            setFormMasterList(prevState => {
+                // เช็คว่ามีข้อมูลใน array หรือไม่
+                const updatedList = [...prevState];
+                updatedList[0] = {
+                    apID: apSelected.AP_Id,
+                    apCode: apSelected.AP_Code,
+                    apName: apSelected.AP_Name,
+                    apAdd1: apSelected.AP_Add1,
+                    apAdd2: apSelected.AP_Add2,
+                    apAdd3: apSelected.AP_Add3,
+                    apProvince: apSelected.AP_Province,
+                    apZipcode: apSelected.AP_Zipcode,
+                    apTaxNo: apSelected.AP_TaxNo
+                };
+                return updatedList;
             });
             handleApClose(); // ปิด modal หลังจากเลือก
         } catch (error) {
@@ -590,6 +710,8 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
         try {
             const newRow = payDetailModel(formDetailList.length + 1);
 
+            console.debug(itemSelected);
+
             setFormDetailList([
                 ...formDetailList,
                 {
@@ -599,7 +721,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                     itemCode: itemSelected.Item_Code,
                     itemName: itemSelected.Item_Name,
                     itemQty: 0,
-                    itemUnit: itemSelected.Item_Unit,
+                    itemUnit: itemSelected.Item_Unit_ST,
                     itemPriceUnit: itemSelected.Item_Cost,
                     itemDiscount: 0,
                     itemDisType: '1',
@@ -625,6 +747,13 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
     // const handleVatChange = () => {
     //     setIsVatChecked(prev => !prev);
     // };
+
+    // การใช้ Tab เพื่อเปลี่ยน Form
+    const [activeTab, setActiveTab] = useState('summary');
+
+    const handleTabChange = (tab) => {
+        setActiveTab(tab);
+    };
 
     // การคำนวณยอดรวม (totalPrice)
     useEffect(() => {
@@ -679,7 +808,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             type="date"
                             className="form-control input-spacing"
                             name="docDate"
-                            value={formMasterList.docDate || ''}
+                            value={formMasterList[0].docDate || ''}
                             onChange={handleChangeMaster}
                             id="docDate"
                         />
@@ -694,9 +823,9 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                                 className="form-control input-spacing"
                                 name="apCode"
                                 value={
-                                    (formMasterList.apCode || '')
+                                    (formMasterList[0].apCode || '')
                                     + " " +
-                                    (formMasterList.apName || '')
+                                    (formMasterList[0].apName || '')
                                 }
                                 onChange={handleChangeMaster}
                                 disabled={true}
@@ -721,7 +850,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             type="text"
                             className="form-control input-spacing"
                             name="createdDate"
-                            value={formMasterList.createdDate}
+                            value={formMasterList[0].createdDate}
                             // onChange={handleChangeMaster}
                             disabled={true} />
                     </div>
@@ -749,7 +878,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             type="text"
                             className="form-control input-spacing"
                             name="apAdd1"
-                            value={formMasterList.apAdd1 || ''}
+                            value={formMasterList[0].apAdd1 || ''}
                             onChange={handleChangeMaster}
                             disabled={true} />
                     </div>
@@ -762,7 +891,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             type="text"
                             className="form-control input-spacing"
                             name="createdByName"
-                            value={formMasterList.createdByName || ''}
+                            value={formMasterList[0].createdByName || ''}
                             onChange={handleChangeMaster}
                             disabled={true} />
                     </div>
@@ -777,7 +906,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                                 type="text"
                                 className="form-control input-spacing"
                                 name="refDoc"
-                                value={formMasterList.refDoc || ''}
+                                value={formMasterList[0].refDoc || ''}
                                 onChange={handleChangeMaster}
                                 disabled={true}
                             />
@@ -801,9 +930,9 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             type="text"
                             className="form-control input-spacing"
                             value={
-                                (formMasterList.apAdd2 || '')
+                                (formMasterList[0].apAdd2 || '')
                                 + " " +
-                                (formMasterList.apAdd3 || '')
+                                (formMasterList[0].apAdd3 || '')
                             }
                             disabled={true} />
                     </div>
@@ -817,7 +946,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             type="text"
                             className="form-control input-spacing"
                             name="updateDate"
-                            value={formMasterList.updateDate || ''}
+                            value={formMasterList[0].updateDate || ''}
                             onChange={handleChangeMaster}
                             disabled={true} />
                     </div>
@@ -832,7 +961,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             type="text"
                             className="form-control input-spacing"
                             name="refDocDate"
-                            value={formMasterList.refDocDate || ''}
+                            value={formMasterList[0].refDocDate || ''}
                             onChange={handleChangeMaster}
                             disabled={true}
                         />
@@ -845,9 +974,9 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             type="text"
                             className="form-control input-spacing"
                             value={
-                                (formMasterList.apProvince || '')
+                                (formMasterList[0].apProvince || '')
                                 + " " +
-                                (formMasterList.apZipcode || '')
+                                (formMasterList[0].apZipcode || '')
                             }
                             disabled={true} />
                     </div>
@@ -860,7 +989,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             type="text"
                             className="form-control input-spacing"
                             name="updateByName"
-                            value={formMasterList.updateByName || ''}
+                            value={formMasterList[0].updateByName || ''}
                             onChange={handleChangeMaster}
                             disabled={true} />
                     </div>
@@ -873,11 +1002,11 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                         <select
                             className="form-select form-control input-spacing"
                             name="docType"
-                            value={formMasterList.docType}
+                            value={formMasterList[0].docType}
                             onChange={handleChangeMaster}
-                            disabled={docRefType === '1' ? true : false}
+                            disabled={docRefType === '1'}
                         >
-                            {tbDocType.map((docType) => (
+                            {docRefType !== '1' && tbDocType.map((docType) => (
                                 <option key={docType.DocType_Id} value={docType.DocType_Id}>
                                     {docType.DocType_Name}
                                 </option>
@@ -892,7 +1021,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             type="text"
                             className="form-control input-spacing"
                             value={
-                                formMasterList.apTaxNo || ''
+                                formMasterList[0].apTaxNo || ''
                             }
                             disabled={true} />
                     </div>
@@ -905,7 +1034,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             type="text"
                             className="form-control input-spacing"
                             name="approvedDate"
-                            value={formMasterList.approvedDate || ''}
+                            value={formMasterList[0].approvedDate || ''}
                             onChange={handleChangeMaster}
                             disabled={true} />
                     </div>
@@ -919,11 +1048,15 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             name="docFor"
                             value={formMasterList.docFor}
                             onChange={handleChangeMaster}
-                            disabled={docRefType === '1' ? true : false}
+                            disabled={docRefType === '1'}
                             className="form-select form-control input-spacing"
                         >
-                            <option value="1">ซื้อมาเพื่อใช้</option>
-                            <option value="2">ซื้อมาเพื่อขาย</option>
+                            {docRefType !== '1' && (
+                                <>
+                                    <option value="1">ซื้อมาเพื่อใช้</option>
+                                    <option value="2">ซื้อมาเพื่อขาย</option>
+                                </>
+                            )}
                         </select>
                     </div>
                 </div>
@@ -935,7 +1068,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             type="text"
                             className="form-control input-spacing"
                             name="approvedByName"
-                            value={formMasterList.approvedByName || ''}
+                            value={formMasterList[0].approvedByName || ''}
                             onChange={handleChangeMaster}
                             disabled={true} />
                     </div>
@@ -949,7 +1082,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             type="date"
                             className="form-control input-spacing"
                             name="recDueDate"
-                            value={formMasterList.docDueDate}
+                            value={formMasterList[0].docDueDate}
                             onChange={handleChangeMaster} />
                     </div>
                 </div>
@@ -961,259 +1094,400 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             type="text"
                             className="form-control input-spacing"
                             name="approvedMemo"
-                            value={formMasterList.approvedMemo || ''}
+                            value={formMasterList[0].approvedMemo || ''}
                             onChange={handleChangeMaster}
                             disabled={true} />
                     </div>
                 </div>
             </div>
-            <hr />
             <div className="row mt-2">
-                <div className="col-6">
-                    <div className="d-flex align-items-center">
-                        <label>รายละเอียดเอกสาร</label>
-                        <input
-                            type="text"
-                            className="form-control input-spacing"
-                            name="docRemark1"
-                            value={formMasterList.docRemark1 || ''}
-                            onChange={handleChangeMaster}
-                            maxLength={100} />
-                    </div>
-                </div>
-
-                <div className="col-6">
-                    <div className="d-flex align-items-center">
-                        <label>หมายเหตุธุรการ</label>
-                        <input
-                            type="text"
-                            className="form-control input-spacing"
-                            name="docRemark2"
-                            value={formMasterList.docRemark2 || ''}
-                            onChange={handleChangeMaster}
-                            maxLength={500} />
-                    </div>
-                </div>
-            </div>
-            <div className="row mt-2">
-
                 <div className="col-12">
                     <div className="card">
-                        <div className="card-header d-flex justify-content-between align-items-center">
-                            <h4 className="card-title">รายละเอียดสินค้า</h4>
-                            <button
-                                type="button"
-                                className="btn custom-button"
-                                onClick={handleItemShow}
-                                hidden={docRefType === '1' ? true : false}>
-                                <i className="fa fa-plus"></i> เพิ่มรายการ
-                            </button>
+                        <div className="card-header">
+                            <ul className="nav nav-tabs">
+                                <li className="nav-item">
+                                    <a style={{ cursor: 'pointer', color: '#EF6C00' }}
+                                        className={`nav-link ${activeTab === 'summary' ? 'active' : ''}`}
+                                        onClick={() => handleTabChange('summary')}>
+                                        ยอดรวม
+                                    </a>
+                                </li>
+                                <li className="nav-item">
+                                    <a style={{ cursor: 'pointer', color: '#EF6C00' }}
+                                        className={`nav-link ${activeTab === 'details' ? 'active' : ''}`}
+                                        onClick={() => handleTabChange('details')}>
+                                        รายละเอียดสินค้า
+                                    </a>
+                                </li>
+                            </ul>
                         </div>
-                        <ItemModal
-                            showItemModal={showItemModal}
-                            handleItemClose={handleItemClose}
-                            itemDataList={itemDataList}
-                            onRowSelectItem={onRowSelectItem}
-                        />
-                        <div className="card-body">
-                            <div className="table-responsive">
-                                <table id="basic-datatables" className="table table-striped table-hover">
-                                    <thead className="thead-dark">
-                                        <tr>
-                                            <th className="text-center" style={{ width: '2%' }}>#</th>
-                                            <th hidden={docRefType === '1' ? false : true}
-                                                className="text-center" style={{ width: '8%' }}>
-                                                เลขที่เอกสาร (REC)
-                                            </th>
-                                            <th className="text-center" style={{ width: '10%' }}>รหัสสินค้า</th>
-                                            <th className="text-center" style={docRefType === '1' ?
-                                                { width: '16%' } : { width: '20%' }}>ชื่อสินค้า</th>
-                                            <th className="text-center" style={{ width: '8%' }}>จำนวน</th>
-                                            <th className="text-center" style={{ width: '6%' }}>หน่วย</th>
-                                            <th className="text-center" style={{ width: '8%' }}>ราคาต่อหน่วย</th>
-                                            <th className="text-center" style={{ width: '8%' }}>ส่วนลด</th>
-                                            <th className="text-center" style={{ width: '5%' }}>%</th>
-                                            <th className="text-center" style={{ width: '10%' }}>จำนวนเงินรวม</th>
-                                            <th className="text-center" style={docRefType === '1' ?
-                                                { width: '16%' } : { width: '20%' }}>คลังสินค้า</th>
-                                            <th className="text-center" style={{ width: '3%' }}>ลบ</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {formDetailList.map((item, index) => (
-                                            <tr key={item.itemId || index + 1}>
-                                                <td className="text-center">{index + 1}</td>
-                                                <td hidden={docRefType === '1' ? false : true}
-                                                    className="text-center">
-                                                    {item.recNo || ''}
-                                                </td>
-                                                <td className="text-center">
-                                                    <input
-                                                        type="text"
-                                                        className="form-control text-center"
-                                                        value={item.itemCode || ''}
-                                                        disabled={true}
-                                                        onChange={(e) => handleChangeDetail(index, 'itemCode', e.target.value)}
-                                                    />
-                                                </td>
-                                                <td className="text-center">
-                                                    <input
-                                                        type="text"
-                                                        className="form-control"
-                                                        value={item.itemName || ''}
-                                                        disabled={true}
-                                                        onChange={(e) => handleChangeDetail(index, 'itemName', e.target.value)}
-                                                    />
-                                                </td>
-                                                <td className="text-center">
-                                                    <input
-                                                        type="text"
-                                                        className="form-control text-center"
-                                                        value={item.itemQty || 0}
-                                                        onChange={(e) => handleChangeDetail(index, 'itemQty', e.target.value)}
-                                                        disabled={docRefType === '1' ? true : false}
-                                                    />
-                                                </td>
-                                                <td className="text-center">
-                                                    <input
-                                                        type="text"
-                                                        className="form-control"
-                                                        value={item.itemUnit || ''}
-                                                        disabled={true}
-                                                        onChange={(e) => handleChangeDetail(index, 'itemUnit', e.target.value)}
-                                                    />
-                                                </td>
-                                                <td className="text-center">
-                                                    <input
-                                                        type="text"
-                                                        className="form-control text-end"
-                                                        value={formatCurrency(item.itemPriceUnit || 0)}
-                                                        onChange={(e) => handleChangeDetail(index, 'itemPriceUnit', e.target.value)}
-                                                        disabled={docRefType === '1' ? true : false}
-                                                    />
-                                                </td>
-                                                <td className="text-center">
-                                                    <input
-                                                        type="text"
-                                                        className="form-control text-end"
-                                                        value={formatCurrency(item.itemDiscount || 0)}
-                                                        onChange={(e) => handleChangeDetail(index, 'itemDiscount', e.target.value)}
-                                                        disabled={docRefType === '1' ? true : false}
-                                                    />
-                                                </td>
-                                                <td className="text-center">
-                                                    <select
-                                                        className="form-select"
-                                                        value={item.itemDisType || ''}
-                                                        onChange={(e) => handleChangeDetail(index, 'itemDisType', e.target.value)}
-                                                        disabled={docRefType === '1' ? true : false}
-                                                    >
-                                                        <option value="1">฿</option>
-                                                        <option value="2">%</option>
-                                                    </select>
-                                                </td>
-                                                <td className="text-center">
-                                                    <input
-                                                        type="text"
-                                                        className="form-control text-end"
-                                                        value={formatCurrency(item.itemTotal || 0)}
-                                                        disabled={true}
-                                                        onChange={(e) => handleChangeDetail(index, 'itemTotal', e.target.value)}
-                                                    />
-                                                </td>
-                                                <td className="text-center">
-                                                    <input
-                                                        type="text"
-                                                        className="form-control"
-                                                        value={item.whName || ''}
-                                                        disabled={true}
-                                                        onChange={(e) => handleChangeDetail(index, 'whId', item.whId)}
-                                                    />
-                                                </td>
-                                                <td className="text-center">
-                                                    <button
-                                                        type="button"
-                                                        className="btn btn-danger"
-                                                        onClick={() => handleRemoveRow(index)}
-                                                        disabled={docRefType === '1' ? true : false}
-                                                    >
-                                                        ลบ
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div className="col-12">
-                    <div className="card">
-                        <div className="card-body">
-                            <div className="row">
-                                <div className="col-4" />
-                                <div className="col-4" />
-                                <div className="col-4">
-                                    <div>
-                                        <h5>ยอดท้ายบิล</h5>
-                                        <div className="row mt-3">
-                                            <div className="col-12">
-                                                <div className="d-flex justify-content-end align-items-center mt-1">
-                                                    <label>รวมราคา</label>
-                                                    <input
-                                                        type="text"
-                                                        className="form-control text-end input-spacing"
-                                                        style={{ width: '100px' }}
-                                                        value={formatCurrency(totalPrice || 0)}
-                                                        disabled={true}
-                                                    />
+                        {activeTab === 'summary' ? (
+                            <div className="card-body">
+                                <div className="col-12">
+                                    <div className="card">
+                                        <div className="card-body">
+                                            <div className="row">
+                                                <div className="col-4">
+                                                    <div>
+                                                        <h4 className="card-title">ยอดท้ายบิล</h4>
+                                                        <div className="row mt-3">
+                                                            <div className="col-12">
+                                                                <div className="row">
+                                                                    <div className="col-2">
+                                                                        <label>สถานะจ่าย</label>
+                                                                    </div>
+                                                                    <div className="col-6">
+                                                                        <div className="radio-inline">
+                                                                            <input
+                                                                                className="form-check-input"
+                                                                                type="radio"
+                                                                                name="paymentStatus"
+                                                                                value="oneTime"
+                                                                                checked={paymentStatus === 'oneTime'}
+                                                                                onChange={() => handlePaymentStatusChange('oneTime')}
+                                                                            />
+                                                                            <label className="form-check-label">จ่ายครั้งเดียว</label>
+                                                                            <input
+                                                                                className="form-check-input"
+                                                                                type="radio"
+                                                                                name="paymentStatus"
+                                                                                value="installment"
+                                                                                checked={paymentStatus === 'installment'}
+                                                                                onChange={() => handlePaymentStatusChange('installment')}
+                                                                            />
+                                                                            <label className="form-check-label">จ่ายเป็นงวด</label>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="col-4">
+                                                                        {paymentStatus === 'installment' && (
+                                                                            <input
+                                                                                type="text"
+                                                                                className="form-control text-end input-spacing"
+                                                                                style={{ width: '100px' }}
+                                                                                value={installmentCount}
+                                                                                onChange={(e) => handleInstallmentCountChange(e.target.value)}
+                                                                            />
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                                <div className="row mt-4">
+                                                                    <div className="col-2">
+                                                                        <label>รวมราคา</label>
+                                                                    </div>
+                                                                    <div className="col-10">
+                                                                        <input
+                                                                            type="text"
+                                                                            className="form-control text-end input-spacing"
+                                                                            style={{ width: '100px' }}
+                                                                            value={formatCurrency(totalPrice || 0)}
+                                                                            disabled={true}
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                                <div className="row mt-4">
+                                                                    <div className="col-2">
+                                                                        <label>รวมส่วนลด</label>
+                                                                    </div>
+                                                                    <div className="col-10">
+                                                                        <input
+                                                                            type="text"
+                                                                            className="form-control text-end input-spacing"
+                                                                            style={{ width: '100px' }}
+                                                                            value={formatCurrency(receiptDiscount || 0)}
+                                                                            disabled={true}
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                                <hr />
+                                                                <div className="row mt-4">
+                                                                    <div className="col-2">
+                                                                        <label>VAT (7%)</label>
+                                                                    </div>
+                                                                    <div className="col-10">
+                                                                        <input
+                                                                            type="text"
+                                                                            className="form-control text-end input-spacing"
+                                                                            style={{ width: '100px' }}
+                                                                            value={formatCurrency(vatAmount || 0)}
+                                                                            disabled={true}
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                                <hr />
+                                                                <div className="row mt-4">
+                                                                    <div className="col-2">
+                                                                        <label><h5>รวมทั้งสิ้น</h5></label>
+                                                                    </div>
+                                                                    <div className="col-10">
+                                                                        <input
+                                                                            type="text"
+                                                                            className="form-control text-end input-spacing"
+                                                                            style={{ width: '100px', color: 'red', fontWeight: 'bold', fontSize: '18px' }}
+                                                                            value={formatCurrency(grandTotal || 0)}
+                                                                            disabled={true}
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <div className="d-flex justify-content-end align-items-center mt-1">
-                                                    <label>รวมส่วนลด</label>
-                                                    <input
-                                                        type="text"
-                                                        className="form-control text-end input-spacing"
-                                                        style={{ width: '100px' }}
-                                                        value={formatCurrency(receiptDiscount || 0)}
-                                                        disabled={true}
-                                                    />
-                                                </div>
-                                                <hr />
-                                                <div className="d-flex justify-content-end align-items-center mt-1">
-                                                    <input
-                                                        type="checkbox"
-                                                        className="mr-2"
-                                                        checked={isVatChecked}
-                                                        // onChange={handleVatChange}
-                                                        disabled={true}
-                                                    />
-                                                    <label className="mr-2">VAT (7%)</label>
-                                                    <input
-                                                        type="text"
-                                                        className="form-control text-end input-spacing"
-                                                        style={{ width: '100px' }}
-                                                        value={formatCurrency(vatAmount || 0)}
-                                                        disabled={true}
-                                                    />
-                                                </div>
-                                                <hr />
-                                                <div className="d-flex justify-content-end align-items-center mt-1">
-                                                    <label><h5>รวมทั้งสิ้น</h5></label>
-                                                    <input
-                                                        type="text"
-                                                        className="form-control text-end input-spacing"
-                                                        style={{ width: '100px', color: 'red', fontWeight: 'bold', fontSize: '18px' }}
-                                                        value={formatCurrency(grandTotal || 0)}
-                                                        disabled={true}
-                                                    />
+                                                <div className="col-8">
+                                                    <div>
+                                                        <div className="row mt-3">
+                                                            <div className="col-12">
+                                                                <div className="row">
+                                                                    <div className="col-12">
+                                                                        <div className="card">
+                                                                            <div className="card-header d-flex justify-content-between align-items-center">
+                                                                                <h4 className="card-title">ตารางจ่าย</h4>
+                                                                            </div>
+                                                                            <div className="card-body">
+                                                                                <div className="table-responsive" style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                                                                                    <table className="table table-striped table-hover">
+                                                                                        <thead className="thead-dark">
+                                                                                            <tr>
+                                                                                                <th className="text-center" style={{ width: '2%' }}>#</th>
+                                                                                                <th className="text-center" style={{ width: '18%' }}>วันที่จ่าย</th>
+                                                                                                <th className="text-center" style={{ width: '18%' }}>จำนวนเงิน</th>
+                                                                                                <th className="text-center" style={{ width: '31%' }}>รายละเอียดเอกสาร</th>
+                                                                                                <th className="text-center" style={{ width: '31%' }}>หมายเหตุธุรการ</th>
+                                                                                                {/* <th className="tex  t-center" style={{ width: '2%' }}>ลบ</th> */}
+                                                                                            </tr>
+                                                                                        </thead>
+                                                                                        <tbody>
+                                                                                            {formMasterList.map((item, index) => (
+                                                                                                <tr key={index + 1}>
+                                                                                                    <td className="text-center">{index + 1}</td>
+                                                                                                    <td className="text-center">
+                                                                                                        <input
+                                                                                                            type="date"
+                                                                                                            className="form-control text-center"
+                                                                                                            value={item.datePay || ''}
+                                                                                                            onChange={(e) => handleChangeMasterList(index, 'datePay', e.target.value)}
+                                                                                                        />
+                                                                                                    </td>
+                                                                                                    <td className="text-end">
+                                                                                                        <input
+                                                                                                            type="text"
+                                                                                                            className="form-control text-end input-spacing"
+                                                                                                            value={item.amountPay || grandTotal}
+                                                                                                            onChange={(e) => handleChangeMasterList(index, 'amountPay', e.target.value)}
+                                                                                                        />
+                                                                                                    </td>
+                                                                                                    <td className="text-center">
+                                                                                                        <input
+                                                                                                            type="text"
+                                                                                                            className="form-control"
+                                                                                                            value={item.docRemark1 || ''}
+                                                                                                            onChange={(e) => handleChangeMasterList(index, 'docRemark1', e.target.value)}
+                                                                                                        />
+                                                                                                    </td>
+                                                                                                    <td className="text-center">
+                                                                                                        <input
+                                                                                                            type="text"
+                                                                                                            className="form-control"
+                                                                                                            value={item.docRemark2 || ''}
+                                                                                                            onChange={(e) => handleChangeMasterList(index, 'docRemark2', e.target.value)}
+                                                                                                        />
+                                                                                                    </td>
+                                                                                                    {/* <td className="text-center">
+                                                                                                        <button
+                                                                                                            type="button"
+                                                                                                            className="btn btn-danger"
+                                                                                                            onClick={() => handleRemoveMasterRow(index)}
+                                                                                                        >
+                                                                                                            ลบ
+                                                                                                        </button>
+                                                                                                    </td> */}
+                                                                                                </tr>
+                                                                                            ))}
+                                                                                        </tbody>
+                                                                                    </table>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        ) : (
+                            <div className="card-body">
+                                <div className="col-12">
+                                    <div className="card">
+                                        <div className="card-header d-flex justify-content-between align-items-center">
+                                            <h4 className="card-title">รายละเอียดสินค้า</h4>
+                                            <button
+                                                type="button"
+                                                className="btn custom-button"
+                                                onClick={handleItemShow}
+                                                hidden={docRefType === '1' ? true : false}>
+                                                <i className="fa fa-plus"></i> เพิ่มรายการ
+                                            </button>
+                                        </div>
+                                        <ItemModal
+                                            showItemModal={showItemModal}
+                                            handleItemClose={handleItemClose}
+                                            itemDataList={itemDataList}
+                                            onRowSelectItem={onRowSelectItem}
+                                        />
+                                        <div className="card-body">
+                                            <div className="table-responsive" style={{ maxHeight: '500px', overflowY: 'auto' }}>
+                                                <table id="basic-datatables" className="table table-striped table-hover">
+                                                    <thead className="thead-dark">
+                                                        <tr>
+                                                            <th className="text-center" style={{ width: '2%' }}>#</th>
+                                                            {docRefType !== '2' && (
+                                                                <th className="text-center" style={{ width: '8%' }}>
+                                                                    เลขที่เอกสาร (REC)
+                                                                </th>
+                                                            )}
+                                                            <th className="text-center" style={{ width: docRefType === '2' ? '12%' : '10%' }}>
+                                                                รหัสสินค้า
+                                                            </th>
+                                                            <th className="text-center" style={{ width: docRefType === '1' ? '16%' : '20%' }}>
+                                                                ชื่อสินค้า
+                                                            </th>
+                                                            <th className="text-center" style={{ width: '8%' }}>จำนวน</th>
+                                                            <th className="text-center" style={{ width: '6%' }}>หน่วย</th>
+                                                            <th className="text-center" style={{ width: '8%' }}>ราคาต่อหน่วย</th>
+                                                            <th className="text-center" style={{ width: '8%' }}>ส่วนลด</th>
+                                                            <th className="text-center" style={{ width: '5%' }}>%</th>
+                                                            <th className="text-center" style={{ width: '10%' }}>จำนวนเงินรวม</th>
+                                                            {docRefType === '2' && (
+                                                                <th className="text-center" style={{ width: '16%' }}>
+                                                                    คลังสินค้า
+                                                                </th>
+                                                            )}
+                                                            {docRefType === '2' && (
+                                                                <th className="text-center" style={{ width: '3%' }}>ลบ</th>
+                                                            )}
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {formDetailList.map((item, index) => (
+                                                            <tr key={item.itemId || index + 1}>
+                                                                <td className="text-center">{index + 1}</td>
+                                                                <td hidden={docRefType === '1' ? false : true}
+                                                                    className="text-center">
+                                                                    <span>{item.recNo || ''}</span>
+                                                                </td>
+                                                                <td className="text-center">
+                                                                    <span>{item.itemCode || ''}</span>
+                                                                </td>
+                                                                <td className="text-left">
+                                                                    <span>{item.itemName || ''}</span>
+                                                                </td>
+                                                                <td className="text-center">
+                                                                    {docRefType === '1' ? (
+                                                                        <span>{item.itemQty || 0}</span>
+                                                                    ) : (
+                                                                        <input
+                                                                            type="text"
+                                                                            className="form-control text-center"
+                                                                            value={item.itemQty || 0}
+                                                                            onChange={(e) => handleChangeDetail(index, 'itemQty', e.target.value)}
+                                                                            disabled={docRefType === '1' ? true : false}
+                                                                        />
+                                                                    )}
+                                                                </td>
+                                                                <td className="text-center">
+                                                                    <span>{item.itemUnit || ''}</span>
+                                                                </td>
+                                                                <td className="text-end">
+                                                                    {docRefType === '1' ? (
+                                                                        <span>{formatCurrency(item.itemPriceUnit || 0)}</span>
+                                                                    ) : (
+                                                                        <input
+                                                                            type="text"
+                                                                            className="form-control text-end"
+                                                                            value={item.itemPriceUnit || 0}
+                                                                            onChange={(e) => handleChangeDetail(index, 'itemPriceUnit', e.target.value)}
+                                                                            disabled={docRefType === '1' ? true : false}
+                                                                        />
+                                                                    )}
+                                                                </td>
+                                                                <td className="text-end">
+                                                                    {docRefType === '1' ? (
+                                                                        <span>{formatCurrency(item.itemDiscount || 0)}</span>
+                                                                    ) : (
+                                                                        <input
+                                                                            type="text"
+                                                                            className="form-control text-end"
+                                                                            value={item.itemDiscount || 0}
+                                                                            onChange={(e) => handleChangeDetail(index, 'itemDiscount', e.target.value)}
+                                                                            disabled={docRefType === '1' ? true : false}
+                                                                        />
+                                                                    )}
+                                                                </td>
+                                                                <td className="text-center">
+                                                                    {docRefType === '1' ? (
+                                                                        <span>{item.itemDisType === "1" ? "฿" : item.itemDisType === "2" ? "%" : ""}</span>
+                                                                    ) : (
+                                                                        <select
+                                                                            className="form-select"
+                                                                            value={item.itemDisType || ''}
+                                                                            onChange={(e) => handleChangeDetail(index, 'itemDisType', e.target.value)}
+                                                                            disabled={docRefType === '1' ? true : false}
+                                                                        >
+                                                                            <option value="1">฿</option>
+                                                                            <option value="2">%</option>
+                                                                        </select>
+                                                                    )}
+                                                                </td>
+                                                                <td className="text-end">
+                                                                    {docRefType === '1' ? (
+                                                                        <span>{formatCurrency(item.itemTotal || 0)}</span>
+                                                                    ) : (
+                                                                        <input
+                                                                            type="text"
+                                                                            className="form-control text-end"
+                                                                            value={item.itemTotal || 0}
+                                                                            disabled={true}
+                                                                            onChange={(e) => handleChangeDetail(index, 'itemTotal', e.target.value)}
+                                                                        />
+                                                                    )}
+                                                                </td>
+                                                                {docRefType === '2' ? (
+                                                                    <>
+                                                                        <td className="text-center">
+                                                                            <input
+                                                                                type="text"
+                                                                                className="form-control"
+                                                                                value={item.whName || ''}
+                                                                                disabled
+                                                                                onChange={(e) => handleChangeDetail(index, 'whId', item.whId)}
+                                                                            />
+                                                                        </td>
+                                                                        <td className="text-center">
+                                                                            <button
+                                                                                type="button"
+                                                                                className="btn btn-danger"
+                                                                                onClick={() => handleRemoveRow(index)}
+                                                                                disabled={docRefType === '1'}
+                                                                            >
+                                                                                ลบ
+                                                                            </button>
+                                                                        </td>
+                                                                    </>
+                                                                ) : null}
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
                 <FormAction onSubmit={handleSubmit} mode={mode} />

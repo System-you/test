@@ -13,6 +13,23 @@ const ItemTable = ({
     handleItemShow,
     disabled
 }) => {
+
+    // ถ้าเป็นหน้าใบสั่งซื้อและใบรับสินค้า ให้แสดง Column จำนวนรับ / จำนวนค้างรับ
+    const isPurchaseOrderOrReceipt = () => {
+        return window.location.pathname === '/purchase-order' || window.location.pathname === '/purchase-receipt';
+    };
+
+    // ถ้าเป็นหน้าใบสั่งซื้อและใบรับสินค้า ให้กำหนด Width จำนวนรับ / จำนวนค้างรับ
+    const getColumnWidth = () => {
+        if (window.location.pathname === '/purchase-order') {
+            return '13%';
+        } else if (window.location.pathname === '/purchase-receipt') {
+            return '21%';
+        } else {
+            return '21%';
+        }
+    };
+
     return (
         <div className="col-12">
             <div className="card">
@@ -37,109 +54,174 @@ const ItemTable = ({
                         <table id="basic-datatables" className="table table-striped table-hover">
                             <thead className="thead-dark">
                                 <tr>
-                                    <th className="text-center" style={{ width: '2%' }}>#</th>
+                                    <th className="text-center" style={{ width: '1%' }}>#</th>
                                     <th className="text-center" style={{ width: '10%' }}>รหัสสินค้า</th>
-                                    <th className="text-center" style={{ width: '20%' }}>ชื่อสินค้า</th>
+                                    <th
+                                        className="text-center"
+                                        style={window.location.pathname === '/purchase-order' ? { width: '12%' } : { width: '20%' }}>
+                                        ชื่อสินค้า
+                                    </th>
                                     <th className="text-center" style={{ width: '8%' }}>จำนวน</th>
+                                    <th hidden={window.location.pathname === '/purchase-order' ? false : true}
+                                        className="text-center"
+                                        style={{ width: '8%' }}>
+                                        จำนวนรับ
+                                    </th>
+                                    <th hidden={!isPurchaseOrderOrReceipt()}
+                                        className="text-center"
+                                        style={{ width: '8%' }}>
+                                        จำนวนค้างรับ
+                                    </th>
                                     <th className="text-center" style={{ width: '6%' }}>หน่วย</th>
                                     <th className="text-center" style={{ width: '8%' }}>ราคาต่อหน่วย</th>
                                     <th className="text-center" style={{ width: '8%' }}>ส่วนลด</th>
                                     <th className="text-center" style={{ width: '5%' }}>%</th>
                                     <th className="text-center" style={{ width: '10%' }}>จำนวนเงินรวม</th>
-                                    <th className="text-center" style={{ width: '20%' }}>คลังสินค้า</th>
+                                    <th
+                                        className="text-center"
+                                        style={{ width: getColumnWidth() }}>
+                                        คลังสินค้า
+                                    </th>
                                     <th className="text-center" style={{ width: '3%' }}>ลบ</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {formDetailList.map((item, index) => (
                                     <tr key={item.itemId || index + 1}>
+                                        {/* # */}
                                         <td className="text-center">{index + 1}</td>
+
+                                        {/* รหัสสินค้า */}
+                                        <td className="text-center">
+                                            <span>{item.itemCode || ''}</span>
+                                        </td>
+
+                                        {/* ชื่อสินค้า */}
+                                        <td className="text-center">
+                                            <span>{item.itemName || ''}</span>
+                                        </td>
+
+                                        {/* จำนวน */}
                                         <td className="text-center">
                                             <input
                                                 type="text"
-                                                className="form-control text-center"
-                                                value={item.itemCode || ''}
-                                                disabled={true}
-                                                onChange={(e) => handleChangeDetail(index, 'itemCode', e.target.value)}
-                                            />
-                                        </td>
-                                        <td className="text-center">
-                                            <input
-                                                type="text"
-                                                className="form-control"
-                                                value={item.itemName || ''}
-                                                disabled={true}
-                                                onChange={(e) => handleChangeDetail(index, 'itemName', e.target.value)}
-                                            />
-                                        </td>
-                                        <td className="text-center">
-                                            <input
-                                                type="number"
                                                 className="form-control text-center"
                                                 value={item.itemQty || 0}
                                                 onChange={(e) => handleChangeDetail(index, 'itemQty', e.target.value)}
-                                                // disabled={window.location.pathname === '/product-receipt'
-                                                //     ? (!disabled ? true : false)
-                                                //     : disabled}
-                                                disabled={disabled}
+                                                disabled={window.location.pathname === '/product-receipt'
+                                                    ? (!disabled ? true : false) || (item.itemRecBalance === 0 ? true : false)
+                                                    : disabled}
                                             />
                                         </td>
-                                        <td className="text-center">
-                                            <input
-                                                type="text"
-                                                className="form-control"
-                                                value={item.itemUnit || ''}
-                                                disabled={true}
-                                                onChange={(e) => handleChangeDetail(index, 'itemUnit', e.target.value)}
-                                            />
+
+                                        {/* จำนวนรับ */}
+                                        <td
+                                            hidden={window.location.pathname === '/purchase-order' ? false : true}
+                                            className="text-center"
+                                        >
+                                            {disabled ? (
+                                                <span>{item.itemRecQty || 0}</span>
+                                            ) : (
+                                                <input
+                                                    type="text"
+                                                    className="form-control text-center"
+                                                    value={item.itemRecQty || 0}
+                                                    onChange={(e) => handleChangeDetail(index, 'itemQty', e.target.value)}
+                                                    disabled={disabled}
+                                                />
+                                            )}
                                         </td>
-                                        <td className="text-center">
-                                            <input
-                                                type="number"
-                                                className="form-control text-end"
-                                                value={item.itemPriceUnit || 0}
-                                                onChange={(e) => handleChangeDetail(index, 'itemPriceUnit', e.target.value)}
-                                                disabled={disabled}
-                                            />
+
+                                        {/* จำนวนค้างรับ */}
+                                        <td
+                                            hidden={!isPurchaseOrderOrReceipt()}
+                                            className="text-center">
+                                            {disabled ? (
+                                                <span>{item.itemRecBalance || 0}</span>
+                                            ) : (
+                                                <input
+                                                    type="text"
+                                                    className="form-control text-center"
+                                                    value={item.itemRecBalance || 0}
+                                                    onChange={(e) => handleChangeDetail(index, 'itemQty', e.target.value)}
+                                                    disabled={disabled}
+                                                />
+                                            )}
                                         </td>
+
+                                        {/* หน่วย */}
                                         <td className="text-center">
-                                            <input
-                                                type="number"
-                                                className="form-control text-end"
-                                                value={item.itemDiscount || 0}
-                                                onChange={(e) => handleChangeDetail(index, 'itemDiscount', e.target.value)}
-                                                disabled={disabled}
-                                            />
+                                            {disabled ? (
+                                                <span>{item.itemUnit || ''}</span>
+                                            ) : (
+                                                <input
+                                                    type="text"
+                                                    className="form-control"
+                                                    value={item.itemUnit || ''}
+                                                    disabled={true}
+                                                    onChange={(e) => handleChangeDetail(index, 'itemUnit', e.target.value)}
+                                                />
+                                            )}
                                         </td>
+
+                                        {/* ราคาต่อหน่วย */}
+                                        <td className="text-end">
+                                            {disabled ? (
+                                                <span>{formatCurrency(item.itemPriceUnit || 0)}</span>
+                                            ) : (
+                                                <input
+                                                    type="text"
+                                                    className="form-control text-end"
+                                                    value={item.itemPriceUnit || 0}
+                                                    onChange={(e) => handleChangeDetail(index, 'itemPriceUnit', e.target.value)}
+                                                    disabled={disabled}
+                                                />
+                                            )}
+                                        </td>
+
+                                        {/* ส่วนลด */}
+                                        <td className="text-end">
+                                            {disabled ? (
+                                                <span>{formatCurrency(item.itemDiscount || 0)}</span>
+                                            ) : (
+                                                <input
+                                                    type="text"
+                                                    className="form-control text-end"
+                                                    value={item.itemDiscount || 0}
+                                                    onChange={(e) => handleChangeDetail(index, 'itemDiscount', e.target.value)}
+                                                    disabled={disabled}
+                                                />
+                                            )}
+                                        </td>
+
+                                        {/* % */}
                                         <td className="text-center">
-                                            <select
-                                                className="form-select"
-                                                value={item.itemDisType || ''}
-                                                onChange={(e) => handleChangeDetail(index, 'itemDisType', e.target.value)}
-                                                disabled={disabled}
-                                            >
-                                                <option value="1">฿</option>
-                                                <option value="2">%</option>
-                                            </select>
+                                            {disabled ? (
+                                                <span>{item.itemDisType === "1" ? "฿" : item.itemDisType === "2" ? "%" : ""}</span>
+                                            ) : (
+                                                <select
+                                                    className="form-select"
+                                                    value={item.itemDisType || ''}
+                                                    onChange={(e) => handleChangeDetail(index, 'itemDisType', e.target.value)}
+                                                    disabled={disabled}
+                                                >
+                                                    <option value="1">฿</option>
+                                                    <option value="2">%</option>
+                                                </select>
+                                            )}
                                         </td>
+
+                                        {/* จำนวนเงินรวม */}
+                                        <td className="text-end">
+                                            <span>{formatCurrency(item.itemTotal || 0)}</span>
+                                        </td>
+
+                                        {/* คลังสินค้า */}
                                         <td className="text-center">
-                                            <input
-                                                type="text"
-                                                className="form-control text-end"
-                                                value={formatCurrency(item.itemTotal || 0)}
-                                                disabled={true}
-                                                onChange={(e) => handleChangeDetail(index, 'itemTotal', e.target.value)}
-                                            />
+                                            <span>{item.whName || ''}</span>
                                         </td>
-                                        <td className="text-center">
-                                            <input
-                                                type="text"
-                                                className="form-control"
-                                                value={item.whName || ''}
-                                                disabled={true}
-                                                onChange={(e) => handleChangeDetail(index, 'whId', item.whId)}
-                                            />
-                                        </td>
+
+                                        {/* ลบ */}
                                         <td className="text-center">
                                             <button
                                                 type="button"
@@ -158,262 +240,6 @@ const ItemTable = ({
                 </div>
             </div>
         </div>
-        // <div className="col-12">
-        //     <div className="table100 ver1 m-b-110">
-        //         <div className="table100-head">
-        //             <table>
-        //                 <thead>
-        //                     <tr className="row100 head">
-        //                         {/* <th className="cell100 column1">Class name</th>
-        //                         <th className="cell100 column2">Type</th>
-        //                         <th className="cell100 column3">Hours</th>
-        //                         <th className="cell100 column4">Trainer</th>
-        //                         <th className="cell100 column5">Spots</th> */}
-
-        //                         <th className="cell100">#</th>
-        //                         <th className="cell100">รหัสสินค้า</th>
-        //                         <th className="cell100">ชื่อสินค้า</th>
-        //                         <th className="cell100">จำนวน</th>
-        //                         <th className="cell100">หน่วย</th>
-        //                         <th className="cell100">ราคาต่อหน่วย</th>
-        //                         <th className="cell100">ส่วนลด</th>
-        //                         <th className="cell100">%</th>
-        //                         <th className="cell100">จำนวนเงินรวม</th>
-        //                         <th className="cell100">คลังสินค้า</th>
-        //                         <th className="cell100">ลบ</th>
-        //                     </tr>
-        //                 </thead>
-        //             </table>
-        //         </div>
-        //         <div className="table100-body js-pscroll ps ps--active-y">
-        //             <table>
-        //                 <tbody>
-        //                     <tr className="row100 body">
-        //                         <td className="cell100">1</td>
-        //                         <td className="cell100">Like a butterfly</td>
-        //                         <td className="cell100">Boxing</td>
-        //                         <td className="cell100">9:00 AM - 11:00 AM</td>
-        //                         <td className="cell100">Aaron Chapman</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                     </tr>
-        //                     <tr className="row100 body">
-        //                         <td className="cell100">1</td>
-        //                         <td className="cell100">Like a butterfly</td>
-        //                         <td className="cell100">Boxing</td>
-        //                         <td className="cell100">9:00 AM - 11:00 AM</td>
-        //                         <td className="cell100">Aaron Chapman</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                     </tr>
-        //                     <tr className="row100 body">
-        //                         <td className="cell100">1</td>
-        //                         <td className="cell100">Like a butterfly</td>
-        //                         <td className="cell100">Boxing</td>
-        //                         <td className="cell100">9:00 AM - 11:00 AM</td>
-        //                         <td className="cell100">Aaron Chapman</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                     </tr>
-        //                     <tr className="row100 body">
-        //                         <td className="cell100">1</td>
-        //                         <td className="cell100">Like a butterfly</td>
-        //                         <td className="cell100">Boxing</td>
-        //                         <td className="cell100">9:00 AM - 11:00 AM</td>
-        //                         <td className="cell100">Aaron Chapman</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                     </tr>
-        //                     <tr className="row100 body">
-        //                         <td className="cell100">1</td>
-        //                         <td className="cell100">Like a butterfly</td>
-        //                         <td className="cell100">Boxing</td>
-        //                         <td className="cell100">9:00 AM - 11:00 AM</td>
-        //                         <td className="cell100">Aaron Chapman</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                     </tr>
-        //                     <tr className="row100 body">
-        //                         <td className="cell100">1</td>
-        //                         <td className="cell100">Like a butterfly</td>
-        //                         <td className="cell100">Boxing</td>
-        //                         <td className="cell100">9:00 AM - 11:00 AM</td>
-        //                         <td className="cell100">Aaron Chapman</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                     </tr>
-        //                     <tr className="row100 body">
-        //                         <td className="cell100">1</td>
-        //                         <td className="cell100">Like a butterfly</td>
-        //                         <td className="cell100">Boxing</td>
-        //                         <td className="cell100">9:00 AM - 11:00 AM</td>
-        //                         <td className="cell100">Aaron Chapman</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                     </tr>
-        //                     <tr className="row100 body">
-        //                         <td className="cell100">1</td>
-        //                         <td className="cell100">Like a butterfly</td>
-        //                         <td className="cell100">Boxing</td>
-        //                         <td className="cell100">9:00 AM - 11:00 AM</td>
-        //                         <td className="cell100">Aaron Chapman</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                     </tr>
-        //                     <tr className="row100 body">
-        //                         <td className="cell100">1</td>
-        //                         <td className="cell100">Like a butterfly</td>
-        //                         <td className="cell100">Boxing</td>
-        //                         <td className="cell100">9:00 AM - 11:00 AM</td>
-        //                         <td className="cell100">Aaron Chapman</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                     </tr>
-        //                     <tr className="row100 body">
-        //                         <td className="cell100">1</td>
-        //                         <td className="cell100">Like a butterfly</td>
-        //                         <td className="cell100">Boxing</td>
-        //                         <td className="cell100">9:00 AM - 11:00 AM</td>
-        //                         <td className="cell100">Aaron Chapman</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                     </tr>
-        //                     <tr className="row100 body">
-        //                         <td className="cell100">1</td>
-        //                         <td className="cell100">Like a butterfly</td>
-        //                         <td className="cell100">Boxing</td>
-        //                         <td className="cell100">9:00 AM - 11:00 AM</td>
-        //                         <td className="cell100">Aaron Chapman</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                     </tr>
-        //                     <tr className="row100 body">
-        //                         <td className="cell100">1</td>
-        //                         <td className="cell100">Like a butterfly</td>
-        //                         <td className="cell100">Boxing</td>
-        //                         <td className="cell100">9:00 AM - 11:00 AM</td>
-        //                         <td className="cell100">Aaron Chapman</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                     </tr>
-        //                     <tr className="row100 body">
-        //                         <td className="cell100">1</td>
-        //                         <td className="cell100">Like a butterfly</td>
-        //                         <td className="cell100">Boxing</td>
-        //                         <td className="cell100">9:00 AM - 11:00 AM</td>
-        //                         <td className="cell100">Aaron Chapman</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                     </tr>
-        //                     <tr className="row100 body">
-        //                         <td className="cell100">1</td>
-        //                         <td className="cell100">Like a butterfly</td>
-        //                         <td className="cell100">Boxing</td>
-        //                         <td className="cell100">9:00 AM - 11:00 AM</td>
-        //                         <td className="cell100">Aaron Chapman</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                     </tr>
-        //                     <tr className="row100 body">
-        //                         <td className="cell100">1</td>
-        //                         <td className="cell100">Like a butterfly</td>
-        //                         <td className="cell100">Boxing</td>
-        //                         <td className="cell100">9:00 AM - 11:00 AM</td>
-        //                         <td className="cell100">Aaron Chapman</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                     </tr>
-        //                     <tr className="row100 body">
-        //                         <td className="cell100">1</td>
-        //                         <td className="cell100">Like a butterfly</td>
-        //                         <td className="cell100">Boxing</td>
-        //                         <td className="cell100">9:00 AM - 11:00 AM</td>
-        //                         <td className="cell100">Aaron Chapman</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                     </tr>
-        //                     <tr className="row100 body">
-        //                         <td className="cell100">1</td>
-        //                         <td className="cell100">Like a butterfly</td>
-        //                         <td className="cell100">Boxing</td>
-        //                         <td className="cell100">9:00 AM - 11:00 AM</td>
-        //                         <td className="cell100">Aaron Chapman</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                         <td className="cell100">xxxxxxxxxxx</td>
-        //                     </tr>
-        //                 </tbody>
-        //             </table>
-        //         </div>
-        //     </div>
-        // </div>
     );
 };
 

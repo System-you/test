@@ -27,7 +27,6 @@ import {
     formatThaiDateToDate,
     formatThaiDateUiToDate,
     getMaxDocNo,
-    getCreateDateTime,
     setCreateDateTime
 } from '../../../../utils/SamuiUtils';
 
@@ -214,7 +213,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                 doc_due_date: formatThaiDateToDate(formMasterList.docDueDate),
                 doc_status: parseInt("1", 10),
                 doc_code: parseInt("1", 10),
-                doc_type: parseInt("1", 10),
+                doc_type: parseInt(formMasterList.docType, 10),
                 doc_for: formMasterList.docFor,
                 doc_is_po: parseInt("0", 10),
                 ref_doc_id: formMasterList.refDocID,
@@ -297,7 +296,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             item_distype: item.itemDisType === '1' ? parseInt("1", 10) : parseInt("2", 10),
                             item_total: item.itemTotal,
                             item_status: item.itemStatus === 'Y' ? 1 : 0,
-                            wh_id: null,
+                            wh_id: item.whId,
                             zone_id: parseInt("1", 10),
                             lt_id: parseInt("1", 10),
                             ds_seq: formatDateTime(new Date())
@@ -333,6 +332,12 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
     };
 
     const handleChangeDetail = (index, field, value) => {
+        // ตรวจสอบว่าค่าที่กรอกเข้ามาเป็นตัวเลขเท่านั้น
+        if (!/^\d*$/.test(value)) {
+            //getAlert("FAILED", "กรุณากรอกเฉพาะตัวเลขเท่านั้น");
+            return;
+        }
+
         const updatedList = [...formDetailList];
         updatedList[index][field] = value;
 

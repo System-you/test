@@ -22,7 +22,7 @@ const Summary = ({
                     <div className="row">
                         <div className="col-4">
                             <div hidden={window.location.pathname === '/payment-voucher'}>
-                                <h5>ส่วนลดท้ายบิล</h5>
+                                <h4 className="card-title">ส่วนลดท้ายบิล</h4>
                                 <div className="row mt-3">
                                     <div className="col-3">
                                         <div className="d-flex align-items-center">
@@ -31,10 +31,10 @@ const Summary = ({
                                     </div>
                                     <div className="col-3">
                                         <input
-                                            type="number"
+                                            type="text"
                                             className="form-control text-end"
                                             name="discountValue"
-                                            value={formMasterList.discountValue || 0}
+                                            value={disabled ? formatCurrency(formMasterList.discountValue || 0) : formMasterList.discountValue || 0}
                                             onChange={handleChangeMaster}
                                             disabled={disabled}
                                         />
@@ -78,7 +78,7 @@ const Summary = ({
                         </div>
                         <div className="col-4">
                             <div hidden={window.location.pathname === '/payment-voucher'}>
-                                <h5>Credit Term</h5>
+                                <h4 className="card-title">Credit Term</h4>
                                 <div className="row mt-3">
                                     <div className="col-12">
                                         <div className="row">
@@ -90,7 +90,7 @@ const Summary = ({
                                             <div className="col-4">
                                                 <div className="d-flex align-items-center mb-2">
                                                     <input
-                                                        type="number"
+                                                        type="text"
                                                         className="form-control text-center input-spacing mr-2"
                                                         name="creditTerm"
                                                         value={formMasterList.creditTerm || 0}
@@ -107,7 +107,7 @@ const Summary = ({
                         </div>
                         <div className="col-4">
                             <div hidden={false}>
-                                <h5>ยอดท้ายบิล</h5>
+                                <h4 className="card-title">ยอดท้ายบิล</h4>
                                 <div className="row mt-3">
                                     <div className="col-12">
                                         <div className="d-flex justify-content-end align-items-center mt-1">

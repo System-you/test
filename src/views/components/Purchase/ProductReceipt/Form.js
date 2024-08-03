@@ -6,8 +6,8 @@ import './../../../../assets/css/purchase/form.css';
 import Breadcrumbs from '../../Breadcrumbs';
 import PoModal from '../../Modal/PoModal';
 import ApModal from '../../Modal/ApModal';
-import ItemModal from '../../Modal/ItemModal';
-import Summary from '../../Footer/Summary';
+import ItemTable from '../../Content/ItemTable';
+// import Summary from '../../Footer/Summary';
 import FormAction from '../../Actions/FormAction';
 
 // Model
@@ -156,7 +156,7 @@ function Form({ callInitialize, mode, name, maxRecNo }) {
                     itemCode: itemSelected.Item_Code,
                     itemName: itemSelected.Item_Name,
                     itemQty,
-                    itemQtyOld: Number(itemQtyNow - itemRecQty),
+                    itemRecBalance: Number(itemQtyNow - itemRecQty),
                     itemUnit: itemSelected.Item_Unit,
                     itemPriceUnit,
                     itemDiscount,
@@ -253,7 +253,7 @@ function Form({ callInitialize, mode, name, maxRecNo }) {
                 rec_due_date: formatThaiDateToDate(formMasterList.recDueDate),
                 rec_status: parseInt("2", 10),
                 doc_code: parseInt("3", 10),
-                doc_type: parseInt("1", 10),
+                doc_type: parseInt(formMasterList.docType, 10),
                 doc_for: formMasterList.docFor,
                 doc_is_prc: "N",
                 doc_is_po: parseInt("0", 10),
@@ -436,7 +436,7 @@ function Form({ callInitialize, mode, name, maxRecNo }) {
 
         if (parseInt(value, 10) > oldList[index][field]) {
             const updatedList = [...formDetailList];
-            updatedList[index][field] = updatedList[index].itemQtyOld;
+            updatedList[index][field] = updatedList[index].itemRecBalance;
             setFormDetailList(updatedList);
             getAlert("FAILED", "ไม่สามารถรับสินค้าเกินกว่ายอด PO ได้");
         } else if (parseInt(value, 10) < oldList[index][field]) {
@@ -451,11 +451,11 @@ function Form({ callInitialize, mode, name, maxRecNo }) {
         let shouldShowModal = false;
 
         formDetailList.forEach((item) => {
-            // แปลงค่าของ item.itemQty และ item.itemQtyOld เป็นตัวเลข
+            // แปลงค่าของ item.itemQty และ item.itemRecBalance เป็นตัวเลข
             const itemQty = Number(item.itemQty);
-            const itemQtyOld = Number(item.itemQtyOld);
+            const itemRecBalance = Number(item.itemRecBalance);
 
-            if (itemQty !== itemQtyOld) {
+            if (itemQty !== itemRecBalance) {
                 shouldShowModal = true;
             }
         });
@@ -530,7 +530,7 @@ function Form({ callInitialize, mode, name, maxRecNo }) {
                     itemCode: itemSelected.Item_Code,
                     itemName: itemSelected.Item_Name,
                     itemQty,
-                    itemQtyOld: Number(itemSelected.Item_REC_Balance) || 0,
+                    itemRecBalance: Number(itemSelected.Item_REC_Balance) || 0,
                     itemUnit: itemSelected.Item_Unit,
                     itemPriceUnit,
                     itemDiscount,
@@ -1055,158 +1055,18 @@ function Form({ callInitialize, mode, name, maxRecNo }) {
                 </div>
             </div>
             <div className="row mt-2">
-                <div className="col-12">
-                    <div className="card">
-                        <div className="card-header d-flex justify-content-between align-items-center">
-                            <h4 className="card-title">รายละเอียดสินค้า</h4>
-                            <button
-                                type="button"
-                                className="btn custom-button"
-                                onClick={handleItemShow}
-                                hidden={true}>
-                                <i className="fa fa-plus"></i> เพิ่มรายการ
-                            </button>
-                        </div>
-                        <ItemModal
-                            showItemModal={showItemModal}
-                            handleItemClose={handleItemClose}
-                            itemDataList={itemDataList}
-                            onRowSelectItem={onRowSelectItem}
-                        />
-                        <div className="card-body">
-                            <div className="table-responsive">
-                                <table id="basic-datatables" className="table table-striped table-hover">
-                                    <thead className="thead-dark">
-                                        <tr>
-                                            <th className="text-center" style={{ width: '2%' }}>#</th>
-                                            <th className="text-center" style={{ width: '10%' }}>รหัสสินค้า</th>
-                                            <th className="text-center" style={{ width: '16%' }}>ชื่อสินค้า</th>
-                                            <th className="text-center" style={{ width: '8%' }}>จำนวนรับ</th>
-                                            <th className="text-center" style={{ width: '8%' }}>จำนวนค้างรับ</th>
-                                            <th className="text-center" style={{ width: '6%' }}>หน่วย</th>
-                                            <th className="text-center" style={{ width: '8%' }}>ราคาต่อหน่วย</th>
-                                            <th className="text-center" style={{ width: '8%' }}>ส่วนลด</th>
-                                            <th className="text-center" style={{ width: '5%' }}>%</th>
-                                            <th className="text-center" style={{ width: '10%' }}>จำนวนเงินรวม</th>
-                                            <th className="text-center" style={{ width: '16%' }}>คลังสินค้า</th>
-                                            <th className="text-center" style={{ width: '3%' }}>ลบ</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {formDetailList.map((item, index) => (
-                                            <tr key={item.itemId || index + 1}>
-                                                <td className="text-center">{index + 1}</td>
-                                                <td className="text-center">
-                                                    <input
-                                                        type="text"
-                                                        className="form-control text-center"
-                                                        value={item.itemCode || ''}
-                                                        disabled={true}
-                                                        onChange={(e) => handleChangeDetail(index, 'itemCode', e.target.value)}
-                                                    />
-                                                </td>
-                                                <td className="text-center">
-                                                    <input
-                                                        type="text"
-                                                        className="form-control"
-                                                        value={item.itemName || ''}
-                                                        disabled={true}
-                                                        onChange={(e) => handleChangeDetail(index, 'itemName', e.target.value)}
-                                                    />
-                                                </td>
-                                                <td className="text-center">
-                                                    <input
-                                                        type="text"
-                                                        className="form-control text-center"
-                                                        value={item.itemQty || 0}
-                                                        onChange={(e) => handleChangeDetail(index, 'itemQty', e.target.value)}
-                                                        disabled={false}
-                                                    />
-                                                </td>
-                                                <td className="text-center">
-                                                    <input
-                                                        type="text"
-                                                        className="form-control text-center"
-                                                        value={item.itemQtyOld || 0}
-                                                        onChange={(e) => handleChangeDetail(index, 'itemQtyOld', e.target.value)}
-                                                        disabled={true}
-                                                    />
-                                                </td>
-                                                <td className="text-center">
-                                                    <input
-                                                        type="text"
-                                                        className="form-control"
-                                                        value={item.itemUnit || ''}
-                                                        disabled={true}
-                                                        onChange={(e) => handleChangeDetail(index, 'itemUnit', e.target.value)}
-                                                    />
-                                                </td>
-                                                <td className="text-center">
-                                                    <input
-                                                        type="text"
-                                                        className="form-control text-end"
-                                                        value={formatCurrency(item.itemPriceUnit || 0)}
-                                                        onChange={(e) => handleChangeDetail(index, 'itemPriceUnit', e.target.value)}
-                                                        disabled={true}
-                                                    />
-                                                </td>
-                                                <td className="text-center">
-                                                    <input
-                                                        type="text"
-                                                        className="form-control text-end"
-                                                        value={formatCurrency(item.itemDiscount || 0)}
-                                                        onChange={(e) => handleChangeDetail(index, 'itemDiscount', e.target.value)}
-                                                        disabled={true}
-                                                    />
-                                                </td>
-                                                <td className="text-center">
-                                                    <select
-                                                        className="form-select"
-                                                        value={item.itemDisType || ''}
-                                                        onChange={(e) => handleChangeDetail(index, 'itemDisType', e.target.value)}
-                                                        disabled={true}
-                                                    >
-                                                        <option value="1">฿</option>
-                                                        <option value="2">%</option>
-                                                    </select>
-                                                </td>
-                                                <td className="text-center">
-                                                    <input
-                                                        type="text"
-                                                        className="form-control text-end"
-                                                        value={formatCurrency(item.itemTotal || 0)}
-                                                        disabled={true}
-                                                        onChange={(e) => handleChangeDetail(index, 'itemTotal', e.target.value)}
-                                                    />
-                                                </td>
-                                                <td className="text-center">
-                                                    <input
-                                                        type="text"
-                                                        className="form-control"
-                                                        value={item.whName || ''}
-                                                        disabled={true}
-                                                        onChange={(e) => handleChangeDetail(index, 'whId', item.whId)}
-                                                    />
-                                                </td>
-                                                <td className="text-center">
-                                                    <button
-                                                        type="button"
-                                                        className="btn btn-danger"
-                                                        onClick={() => handleRemoveRow(index)}
-                                                        disabled={true}
-                                                    >
-                                                        ลบ
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
+                <ItemTable
+                    formDetailList={formDetailList}
+                    handleChangeDetail={handleChangeDetail}
+                    handleRemoveRow={handleRemoveRow}
+                    formatCurrency={formatCurrency}
+                    showItemModal={showItemModal}
+                    handleItemClose={handleItemClose}
+                    itemDataList={itemDataList}
+                    onRowSelectItem={onRowSelectItem}
+                    handleItemShow={handleItemShow}
+                    disabled={true}
+                />
                 <div className={`modal ${showConfirmModal ? 'show' : ''}`} style={{ display: showConfirmModal ? 'block' : 'none' }} tabIndex="-1" role="dialog">
                     <div className="modal-dialog modal-dialog-centered" role="document">
                         <div className="modal-content">

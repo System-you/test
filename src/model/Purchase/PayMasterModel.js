@@ -9,6 +9,11 @@ export const payMasterModel = () => {
     // const formattedTime = today.toTimeString().split(' ')[0]; // แยกเอาเฉพาะเวลา
 
     return {
+        // สำหรับตารางจ่าย
+        datePay: formattedNewDate,
+        amountPay: 0,
+
+        // ข้อมูลทั่วไป
         payNo: null,
         docDate: formattedNewDate,
         docDueDate: formattedNewDate,

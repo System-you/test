@@ -136,6 +136,8 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                     itemDiscount,
                     itemDisType: String(itemSelected.Item_DisType),
                     itemTotal,
+                    itemRecQty: itemSelected.Item_REC_Qty,
+                    itemRecBalance: itemSelected.Item_REC_Balance,
                     itemStatus: itemSelected.Item_Status,
                     whId: itemSelected.WH_ID,
                     whName: itemSelected.WH_Name,
@@ -230,7 +232,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                 doc_status_paid: parseInt("1", 10),
                 doc_status_receive: parseInt("1", 10),
                 doc_code: parseInt("2", 10),
-                doc_type: parseInt("1", 10),
+                doc_type: parseInt(formMasterList.docType, 10),
                 doc_for: formMasterList.docFor,
                 doc_is_prc: "N",
                 ref_doc_id: formMasterList.refDocID,
@@ -320,8 +322,8 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             item_discount: item.itemDiscount,
                             item_distype: item.itemDisType === '1' ? parseInt("1", 10) : parseInt("2", 10),
                             item_total: item.itemTotal,
-                            item_rec_qty: parseInt("0", 10),
-                            item_rec_balance: item.itemQty,
+                            item_rec_qty: item.itemRecQty,
+                            item_rec_balance: item.itemRecBalance,
                             item_status: item.itemStatus === 'Y' ? 1 : 0,
                             wh_id: null,
                             zone_id: parseInt("1", 10),
@@ -359,6 +361,12 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
     };
 
     const handleChangeDetail = (index, field, value) => {
+        // ตรวจสอบว่าค่าที่กรอกเข้ามาเป็นตัวเลขเท่านั้น
+        if (!/^\d*$/.test(value)) {
+            //getAlert("FAILED", "กรุณากรอกเฉพาะตัวเลขเท่านั้น");
+            return;
+        }
+
         const updatedList = [...formDetailList];
         updatedList[index][field] = value;
 
@@ -426,6 +434,8 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                     itemDiscount,
                     itemDisType: String(itemSelected.Item_DisType),
                     itemTotal,
+                    itemRecQty: parseInt("0", 10),
+                    itemRecBalance: itemQty,
                     itemStatus: itemSelected.Item_Status,
                     whId: itemSelected.WH_ID,
                     whName: itemSelected.WH_Name,

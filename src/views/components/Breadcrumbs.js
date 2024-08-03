@@ -3,7 +3,7 @@ import React from 'react';
 const Breadcrumbs = ({ page, items }) => {
     return (
         <div className="page-header" style={{ paddingTop: '2rem' }}>
-            <h1 className="fw-bold" style={{ color: '#000000' }}>{page}</h1>
+            <h1 className="fw-bold" style={{ color: '#2A2F5B' }}>{page}</h1>
             <ul className="breadcrumbs">
                 <li className="nav-home">
                     <a href="/">

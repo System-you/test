@@ -26,6 +26,15 @@
 }
 
 /*     Table    */
+.table {
+    width: 100%;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    border: 1px solid #00000025 !important;
+    table-layout: auto;
+    border-collapse: collapse;
+}
+
 .table>thead>tr>th,
 .table>tbody>tr>th,
 .table>tfoot>tr>th,
@@ -51,4 +60,12 @@
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     -ms-overflow-style: -ms-autohiding-scrollbar;
+}
+
+.table th,
+.table td {
+    border: 1px solid #00000025 !important;
+    background-color: #f8f9fa;
+    overflow: hidden;
+    vertical-align: middle;
 }

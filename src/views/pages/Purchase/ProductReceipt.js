@@ -20,6 +20,7 @@ function ProductReceipt() {
   const fetchRealtime = async () => {
     try {
       const masterList = await getAllData('API_0301_REC_H', 'ORDER BY Rec_No DESC');
+
       // const detailList = await getAllData('API_0302_REC_D', '');
       const docStatusColour = await getDocStatusColour('POREC', 'Rec_Status');
 

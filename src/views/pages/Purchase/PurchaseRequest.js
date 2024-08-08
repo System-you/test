@@ -29,6 +29,7 @@ function PurchaseRequest() {
   const fetchRealtime = async () => {
     try {
       const masterList = await getAllData('API_0101_PR_H', 'ORDER BY Doc_No DESC');
+
       // const detailList = await getAllData('API_0102_PR_D', '');
       const docStatusColour = await getDocStatusColour('PR', 'Doc_Status');
 

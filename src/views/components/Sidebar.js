@@ -339,6 +339,24 @@ function Sidebar() {
                   </ul>
                 </div>
               </li>
+              {/* Warehouse */}
+              <li className={`nav-item ${['/warehouse-stock'].includes(location.pathname) ? 'active' : ''} text-white`}>
+                <a href="/warehouse" className="collapsed" aria-expanded="false">
+                  <i className="fas fa-database" style={{ color: 'white' }} />
+                  <p>คลังสินค้า</p>
+                  <span className="caret" />
+                </a>
+                <div className={`collapse ${['/warehouse', '/warehouse-stock'].includes(location.pathname) ? 'show' : ''}`}
+                  id="data">
+                  <ul className="nav nav-collapse">
+                    <li className={`nav-item ${location.pathname === '/warehouse-stock' ? 'active' : ''}`}>
+                      <a href="/warehouse-stock">
+                        <span className="sub-item">สต็อกคลังสินค้า</span>
+                      </a>
+                    </li>
+                  </ul>
+                </div>
+              </li>
             </ul>
           </div>
         </div>

@@ -22,6 +22,7 @@ function PurchaseOrder() {
   const fetchRealtime = async () => {
     try {
       const masterList = await getAllData('API_0201_PO_H', 'ORDER BY Doc_No DESC');
+
       // const detailList = await getAllData('API_0202_PO_D', '');
       const docStatusColour = await getDocStatusColour('PO', 'Doc_Status');
       const docStatusPaidColour = await getDocStatusColour('PO', 'Doc_Status_Paid');

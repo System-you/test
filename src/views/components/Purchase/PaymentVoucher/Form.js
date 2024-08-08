@@ -1464,6 +1464,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                                                         </div>
                                                     </div>
                                                 </div>
+                                                <div className="col-4" />
                                             </div>
                                         </div>
                                     </div>

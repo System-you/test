@@ -25,16 +25,7 @@ function PaymentVoucher() {
 
       if (masterList && masterList.length > 0) {
         const sortedData = masterList.sort((a, b) => a.Pay_No - b.Pay_No);
-        setDataMasterList(sortedData, "PAY");
-
-        // หาค่าสูงของ DocNo ใน API_101_PR_H
-        const maxDoc = getMaxPayNo(sortedData);
-        setMaxDocNo(maxDoc);
-      } else {
-        const currentYear = new Date().getFullYear();
-        const thaiYear = currentYear + 543; // Convert to Thai year (พ.ศ.)
-        const maxDocNo = "PAY" + thaiYear.toString().slice(-2) + "07" + "0001";
-        setMaxDocNo(maxDocNo);
+        setDataMasterList(sortedData);
       }
 
       // if (detailList && detailList.length > 0) {
@@ -44,6 +35,11 @@ function PaymentVoucher() {
       if (payStatusColour && payStatusColour.length > 0) {
         setStatusColours(payStatusColour);
       }
+
+      // หาค่าสูงของ PayNo ใน PAY_H
+      const findMaxPayNo = await getAllData('PAY_H', 'ORDER BY Pay_No DESC');
+      const maxDoc = getMaxPayNo(findMaxPayNo);
+      setMaxDocNo(maxDoc);
     } catch (error) {
       getAlert('FAILED', error.message);
     }

@@ -35,15 +35,6 @@ function PurchaseRequest() {
       if (masterList && masterList.length > 0) {
         const sortedData = masterList.sort((a, b) => a.Doc_Id - b.Doc_Id);
         setDataMasterList(sortedData);
-
-        // หาค่าสูงของ DocNo ใน API_101_PR_H
-        const maxDoc = getMaxDocNo(sortedData, "PR");
-        setMaxDocNo(maxDoc);
-      } else {
-        const currentYear = new Date().getFullYear();
-        const thaiYear = currentYear + 543; // Convert to Thai year (พ.ศ.)
-        const maxDocNo = "PR" + thaiYear.toString().slice(-2) + "07" + "0001";
-        setMaxDocNo(maxDocNo);
       }
 
       // if (detailList && detailList.length > 0) {
@@ -53,6 +44,11 @@ function PurchaseRequest() {
       if (docStatusColour && docStatusColour.length > 0) {
         setStatusColours(docStatusColour);
       }
+
+      // หาค่าสูงของ DocNo ใน PR_H
+      const findMaxDocNo = await getAllData('PR_H', 'ORDER BY Doc_No DESC');
+      const maxDoc = getMaxDocNo(findMaxDocNo, 'PR');
+      setMaxDocNo(maxDoc);
     } catch (error) {
       getAlert('FAILED', error.message);
     }

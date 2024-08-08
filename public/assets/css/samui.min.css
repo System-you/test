@@ -4799,14 +4799,18 @@ label {
    border-radius: 2000px;
 }
 
-.form-control:disabled,
-.form-control[readonly] {
+.form-control:disabled
+
+/* ,.form-control[readonly]  */
+   {
    background: #ececec !important;
    border-color: #999999 !important;
 }
 
-.form-control:disabled,
-.form-control[readonly] {
+.form-control:disabled
+
+/* ,.form-control[readonly]  */
+   {
    opacity: 0.6 !important;
 }
 

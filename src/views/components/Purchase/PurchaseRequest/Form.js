@@ -2,6 +2,10 @@ import React, { useState, useEffect } from 'react';
 import Axios from "axios";
 import './../../../../assets/css/purchase/form.css';
 
+// React DateTime
+import Datetime from 'react-datetime';
+import moment from 'moment';
+
 // Components
 import Breadcrumbs from '../../Breadcrumbs';
 import ApModal from '../../Modal/ApModal';
@@ -16,18 +20,22 @@ import { prDetailModel } from '../../../../model/Purchase/PrDetailModel';
 // Utils
 import {
     getAllData,
+    getByDocId,
     getDocType,
     getTransType,
     getViewAp,
     getViewItem,
     getAlert,
     formatCurrency,
+    parseCurrency,
+    formatStringDateToDate,
+    formatDateOnChange,
     formatDateTime,
-    formatThaiDate,
-    formatThaiDateToDate,
+    formatThaiDateUi,
     formatThaiDateUiToDate,
     getMaxDocNo,
-    setCreateDateTime
+    setCreateDateTime,
+    deleteDetail
 } from '../../../../utils/SamuiUtils';
 
 function Form({ callInitialize, mode, name, maxDocNo }) {
@@ -37,6 +45,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
     const [tbTransType, setTbTransType] = useState([]);
     const [apDataList, setApDataList] = useState([]);
     const [itemDataList, setItemDataList] = useState([]);
+    const [whDataList, setWhDataList] = useState([]);
 
     // การคำนวณเงิน
     const [selectedDiscountValueType, setSelectedDiscountValueType] = useState("2");
@@ -73,6 +82,11 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                 setItemDataList(itemDataList);
             }
 
+            const whDataList = await getAllData('Tb_Set_WH', 'ORDER BY WH_Code ASC');
+            if (whDataList && whDataList.length > 0) {
+                setWhDataList(whDataList);
+            }
+
             // สำหรับ View เข้ามาเพื่อแก้ไขข้อมูล
             if (mode === 'U') {
                 await getModelByNo(apDataList);
@@ -84,18 +98,18 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
 
     const getModelByNo = async (apDataList) => {
         try {
-            // ค้นหาข้อมูลที่ตรงกับใน PR_H และ AP_ID ใน apDataList
-            const [getAllPrH] = await Promise.all([
-                getAllData('API_0101_PR_H', ''),
+            // ค้นหาข้อมูลที่ตรงกับใน AP_ID ใน apDataList
+            const [findMaster] = await Promise.all([
+                getAllData('PR_H', ''),
             ]);
+            const fromDatabase = findMaster.find(pr => pr.Doc_No === maxDocNo);
 
-            const fromViewPrH = getAllPrH.find(pr => pr.Doc_No === maxDocNo);
-
+            // ค้นหาข้อมูลผู้ขายด้วย AP_ID
             const [fromViewAp] = await Promise.all([
-                apDataList.find(ap => ap.AP_Id === fromViewPrH.AP_ID)
+                apDataList.find(ap => ap.AP_Id === fromDatabase.AP_ID)
             ]);
 
-            if (!fromViewPrH || !fromViewAp) {
+            if (!fromDatabase || !fromViewAp) {
                 throw new Error("Data not found");
             };
 
@@ -104,9 +118,10 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                 const itemQty = Number(itemSelected.Item_Qty) || 0;
                 const itemPriceUnit = Number(itemSelected.Item_Price_Unit) || 0;
                 const itemDiscount = Number(itemSelected.Item_Discount) || 0;
+                const ItemDisType = String(itemSelected.Item_DisType);
                 let itemTotal = itemQty * itemPriceUnit;
 
-                if (itemSelected.Item_DisType === 2) {
+                if (ItemDisType === '2') {
                     itemTotal -= (itemDiscount / 100) * itemTotal; // ลดตามเปอร์เซ็นต์
                 } else {
                     itemTotal -= itemDiscount; // ลดตามจำนวนเงิน
@@ -114,16 +129,18 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
 
                 return {
                     ...prDetailModel(index + 1),
+                    dtId: itemSelected.DT_Id,
+                    docId: itemSelected.Doc_ID,
                     line: itemSelected.Line,
                     itemId: itemSelected.Item_Id,
                     itemCode: itemSelected.Item_Code,
                     itemName: itemSelected.Item_Name,
                     itemQty,
                     itemUnit: itemSelected.Item_Unit,
-                    itemPriceUnit,
-                    itemDiscount,
+                    itemPriceUnit: formatCurrency(itemPriceUnit),
+                    itemDiscount: formatCurrency(itemDiscount),
                     itemDisType: String(itemSelected.Item_DisType),
-                    itemTotal,
+                    itemTotal: itemTotal,
                     itemStatus: itemSelected.Item_Status,
                     whId: itemSelected.WH_ID,
                     whName: itemSelected.WH_Name,
@@ -133,52 +150,85 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                 };
             };
 
-            const getAllItem = await getAllData('API_0102_PR_D', 'ORDER BY Line ASC');
-            const filterItem = getAllItem.filter(item => item.Doc_No === maxDocNo);
+            // ค้นหาข้อมูลของ Detail ด้วย Doc_ID
+            const fromDetail = await getByDocId('PR_D', fromDatabase.Doc_Id, `ORDER BY Line ASC`);
 
-            if (filterItem.length > 0) {
-                const newFormDetails = filterItem.map((item, index) => createNewRow(formDetailList.length + index, item));
+            if (fromDetail.length > 0) {
+                const newFormDetails = fromDetail.map((item, index) => createNewRow(formDetailList.length + index, item));
 
                 setFormDetailList(newFormDetails);
 
-                const firstItem = filterItem[0];
-
                 setFormMasterList({
-                    refDocID: null,
-                    refDoc: null,
-                    refDocDate: null,
-                    docDate: formatThaiDate(fromViewPrH.Doc_Date),
-                    docDueDate: formatThaiDate(fromViewPrH.Doc_DueDate),
-                    docRemark1: fromViewPrH.Doc_Remark1,
-                    docRemark2: fromViewPrH.Doc_Remark2,
-                    docType: fromViewPrH.Doc_Type,
-                    docFor: fromViewPrH.Doc_For,
-                    transportType: fromViewPrH.Transport_Type,
-                    discountValue: fromViewPrH.Discount_Value,
-                    creditTerm: firstItem.CreditTerm,
-                    apID: fromViewPrH.AP_ID,
-                    apCode: firstItem.AP_Code,
-                    apName: firstItem.AP_Name,
-                    apAdd1: firstItem.AP_Add1,
-                    apAdd2: firstItem.AP_Add2,
-                    apAdd3: firstItem.AP_Add3,
-                    apProvince: firstItem.AP_Province,
-                    apZipcode: firstItem.AP_Zipcode,
-                    apTaxNo: firstItem.AP_TaxNo,
-                    createdByName: firstItem.Created_By_Name,
-                    createdDate: setCreateDateTime(new Date(firstItem.Created_Date)),
-                    updateDate: firstItem.Update_Date,
-                    updateByName: firstItem.Update_By_Name
+                    docId: fromDatabase.Doc_Id,
+                    docNo: fromDatabase.Doc_No,
+                    docDate: formatThaiDateUi(fromDatabase.Doc_Date || null),
+                    docDueDate: formatThaiDateUi(fromDatabase.Doc_DueDate || null),
+                    docStatus: fromDatabase.Doc_Status,
+                    docCode: fromDatabase.Doc_Code,
+                    docType: fromDatabase.Doc_Type,
+                    docFor: fromDatabase.Doc_For,
+                    docIsPO: fromDatabase.Doc_Is_PO,
+                    refDocID: fromDatabase.Ref_DocID,
+                    refDoc: fromDatabase.Ref_Doc,
+                    refDocDate: fromDatabase.Ref_DocDate,
+                    compId: fromDatabase.Comp_Id,
+                    refProjectID: fromDatabase.Ref_ProjectID,
+                    refProjectNo: fromDatabase.Ref_ProjectNo,
+                    transportType: fromDatabase.Transport_Type,
+                    docRemark1: fromDatabase.Doc_Remark1,
+                    docRemark2: fromDatabase.Doc_Remark2,
+                    apID: fromDatabase.AP_ID,
+                    apCode: fromDatabase.AP_Code,
+                    actionHold: fromDatabase.Action_Hold,
+                    discountValue: fromDatabase.Discount_Value,
+                    discountValueType: fromDatabase.Discount_Value_Type,
+                    discountCash: fromDatabase.Discount_Cash,
+                    discountCashType: fromDatabase.Discount_Cash_Type,
+                    discountTransport: fromDatabase.Discount_Transport,
+                    discountTransportType: fromDatabase.Discount_Transport_Type,
+                    isVat: fromDatabase.IsVat,
+                    docSEQ: fromDatabase.Doc_SEQ,
+                    creditTerm: fromDatabase.CreditTerm,
+                    creditTerm1Day: fromDatabase.CreditTerm1Day,
+                    creditTerm1Remark: fromDatabase.CreditTerm1Remark,
+                    creditTerm2Remark: fromDatabase.CreditTerm2Remark,
+                    accCode: fromDatabase.ACC_Code,
+                    empName: fromDatabase.EmpName,
+                    createdDate: setCreateDateTime(fromDatabase.Created_Date || null),
+                    createdByName: fromDatabase.Created_By_Name,
+                    createdById: fromDatabase.Created_By_Id,
+                    updateDate: setCreateDateTime(new Date()),
+                    updateByName: window.localStorage.getItem('name'),
+                    updateById: "1",
+                    approvedDate: setCreateDateTime(fromDatabase.Approved_Date || null),
+                    approvedByName: fromDatabase.Approved_By_Name,
+                    approvedById: fromDatabase.Approved_By_Id,
+                    cancelDate: setCreateDateTime(fromDatabase.Cancel_Date || null),
+                    cancelByName: fromDatabase.Cancel_By_Name,
+                    cancelById: fromDatabase.Cancel_By_Id,
+                    approvedMemo: fromDatabase.Approved_Memo,
+                    printedStatus: fromDatabase.Printed_Status,
+                    printedDate: setCreateDateTime(fromDatabase.Printed_Date || null),
+                    printedBy: fromDatabase.Printed_By,
+
+                    // แสดงรายชื่อผู้ขาย
+                    apName: fromViewAp.AP_Name,
+                    apAdd1: fromViewAp.AP_Add1,
+                    apAdd2: fromViewAp.AP_Add2,
+                    apAdd3: fromViewAp.AP_Add3,
+                    apProvince: fromViewAp.AP_Province,
+                    apZipcode: fromViewAp.AP_Zipcode,
+                    apTaxNo: fromViewAp.AP_TaxNo
                 });
 
-                setIsVatChecked(fromViewPrH.IsVat === 1 ? true : false);
+                setIsVatChecked(fromDatabase.IsVat === 1 ? true : false);
 
-                const discountValueType = Number(fromViewPrH.Discount_Value_Type);
+                const discountValueType = Number(fromDatabase.Discount_Value_Type);
                 if (!isNaN(discountValueType)) {
                     setSelectedDiscountValueType(discountValueType.toString());
                 }
             } else {
-                getAlert('FAILED', `ไม่พบข้อมูลที่ตรงกับเลขที่เอกสาร ${fromViewPrH.Doc_No} กรุณาตรวจสอบและลองอีกครั้ง`);
+                getAlert('FAILED', `ไม่พบข้อมูลที่ตรงกับเลขที่เอกสาร ${fromDatabase.Doc_No} กรุณาตรวจสอบและลองอีกครั้ง`);
             }
         } catch (error) {
             getAlert("FAILED", error.message || error);
@@ -192,25 +242,44 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
 
     const handleSubmit = async () => {
         try {
-            // หาเลข DOC_NO ที่สูงสุดใหม่ แล้วเอามา +1 ก่อนบันทึก
-            const masterList = await getAllData('PR_H', '');
+            // หาค่าสูงของ DocNo ใน PR_H ก่อนบันทึก
+            const findMaxDocNo = await getAllData('PR_H', 'ORDER BY Doc_No DESC');
+            const maxDoc = getMaxDocNo(findMaxDocNo, 'PR');
+            let newMaxDoc = maxDoc;
 
-            const currentYear = new Date().getFullYear();
-            const thaiYear = currentYear + 543; // Convert to Thai year (พ.ศ.)
-            const currentMonth = (new Date().getMonth() + 1).toString().padStart(2, '0'); // แปลงเดือนเป็นเลขสองหลัก
-            let newMaxDoc = "PR" + thaiYear.toString().slice(-2) + currentMonth + "0001";
+            // ตรวจสอบค่า formMasterList.apID และ formMasterList.apCode
+            if (!formMasterList.apID && !formMasterList.apCode) {
+                getAlert("FAILED", "กรุณาเลือกผู้ขาย");
+                return; // หยุดการทำงานของฟังก์ชันหากไม่มีค่า apID หรือ apCode
+            }
 
-            if (masterList && masterList.length > 0) {
-                const sortedData = masterList.sort((a, b) => a.Doc_No.localeCompare(b.Doc_No));
-                // หาค่าสูงสุดของ Doc_No
-                newMaxDoc = getMaxDocNo(sortedData, "PR");
+            // ตรวจสอบว่า formDetailList มีค่าหรือมีความยาวเป็น 0
+            if (!formDetailList || formDetailList.length === 0) {
+                getAlert("FAILED", "กรุณาเพิ่มรายละเอียดสินค้า");
+                return; // หยุดการทำงานของฟังก์ชันหาก formDetailList ไม่มีค่า
+            }
+
+            // ตรวจสอบค่าภายใน formDetailList
+            for (const item of formDetailList) {
+                if (!item.itemQty || parseInt(item.itemQty) === 0) {
+                    getAlert("FAILED", `กรุณากรอกจำนวนของสินค้า ${item.itemName}`);
+                    return; // หยุดการทำงานหากจำนวนของสินค้าเป็น 0 หรือไม่มีค่า
+                }
+                if (!item.itemPriceUnit || parseInt(item.itemPriceUnit) === 0) {
+                    getAlert("FAILED", `กรุณากรอกราคาต่อหน่วยของสินค้า ${item.itemName}`);
+                    return; // หยุดการทำงานหากราคาต่อหน่วยเป็น 0 หรือไม่มีค่า
+                }
+                // if (!item.whId || parseInt(item.whId) === 13) {
+                //     getAlert("FAILED", `กรุณาเลือกคลังสินค้าของสินค้า ${item.itemName}`);
+                //     return; // หยุดการทำงานหาก whId เป็น 13 หรือไม่มีค่า
+                // }
             }
 
             // ข้อมูลหลักที่จะส่งไปยัง API
             const formMasterData = {
                 doc_no: newMaxDoc,
-                doc_date: formatThaiDateToDate(formMasterList.docDate),
-                doc_due_date: formatThaiDateToDate(formMasterList.docDueDate),
+                doc_date: formatStringDateToDate(formMasterList.docDate),
+                doc_due_date: formatStringDateToDate(formMasterList.docDueDate),
                 doc_status: parseInt("1", 10),
                 doc_code: parseInt("1", 10),
                 doc_type: parseInt(formMasterList.docType, 10),
@@ -291,12 +360,12 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             item_name: item.itemName,
                             item_qty: item.itemQty,
                             item_unit: item.itemUnit,
-                            item_price_unit: item.itemPriceUnit,
-                            item_discount: item.itemDiscount,
+                            item_price_unit: parseCurrency(item.itemPriceUnit),
+                            item_discount: parseCurrency(item.itemDiscount),
                             item_distype: item.itemDisType === '1' ? parseInt("1", 10) : parseInt("2", 10),
-                            item_total: item.itemTotal,
-                            item_status: item.itemStatus === 'Y' ? 1 : 0,
-                            wh_id: item.whId,
+                            item_total: parseCurrency(item.itemTotal),
+                            item_status: parseInt("1", 10),
+                            wh_id: parseInt(item.whId, 10),
                             zone_id: parseInt("1", 10),
                             lt_id: parseInt("1", 10),
                             ds_seq: formatDateTime(new Date())
@@ -322,12 +391,189 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
         }
     };
 
+    const handleUpdate = async () => {
+        try {
+            // ตรวจสอบค่า formMasterList.apID และ formMasterList.apCode
+            if (!formMasterList.apID && !formMasterList.apCode) {
+                getAlert("FAILED", "กรุณาเลือกผู้ขาย");
+                return; // หยุดการทำงานของฟังก์ชันหากไม่มีค่า apID หรือ apCode
+            }
+
+            // ตรวจสอบว่า formDetailList มีค่าหรือมีความยาวเป็น 0
+            if (!formDetailList || formDetailList.length === 0) {
+                getAlert("FAILED", "กรุณาเพิ่มรายละเอียดสินค้า");
+                return; // หยุดการทำงานของฟังก์ชันหาก formDetailList ไม่มีค่า
+            }
+
+            // ตรวจสอบค่าภายใน formDetailList
+            for (const item of formDetailList) {
+                if (!item.itemQty || parseInt(item.itemQty) === 0) {
+                    getAlert("FAILED", `กรุณากรอกจำนวนของสินค้า ${item.itemName}`);
+                    return; // หยุดการทำงานหากจำนวนของสินค้าเป็น 0 หรือไม่มีค่า
+                }
+                if (!item.itemPriceUnit || parseInt(item.itemPriceUnit) === 0) {
+                    getAlert("FAILED", `กรุณากรอกราคาต่อหน่วยของสินค้า ${item.itemName}`);
+                    return; // หยุดการทำงานหากราคาต่อหน่วยเป็น 0 หรือไม่มีค่า
+                }
+                // if (!item.whId || parseInt(item.whId) === 13) {
+                //     getAlert("FAILED", `กรุณาเลือกคลังสินค้าของสินค้า ${item.itemName}`);
+                //     return; // หยุดการทำงานหาก whId เป็น 13 หรือไม่มีค่า
+                // }
+            }
+
+            // ข้อมูลหลักที่จะส่งไปยัง API
+            const formMasterData = {
+                doc_no: formMasterList.docNo,
+                doc_date: formatStringDateToDate(formMasterList.docDate),
+                doc_due_date: formatStringDateToDate(formMasterList.docDueDate),
+                doc_status: parseInt(formMasterList.docStatus, 10),
+                doc_code: parseInt(formMasterList.docCode, 10),
+                doc_type: formMasterList.docType,
+                doc_for: formMasterList.docFor,
+                doc_is_po: parseInt(formMasterList.docIsPO, 10),
+                ref_doc_id: formMasterList.refDocID,
+                ref_doc: formMasterList.refDoc,
+                ref_doc_date: formMasterList.refDocDate,
+                comp_id: formMasterList.compId,
+                ref_project_id: formMasterList.refProjectID,
+                ref_project_no: formMasterList.refProjectNo,
+                transport_type: formMasterList.transportType,
+                doc_remark1: formMasterList.docRemark1,
+                doc_remark2: formMasterList.docRemark2,
+                ap_id: parseInt(formMasterList.apID, 10),
+                ap_code: formMasterList.apCode,
+                action_hold: parseInt(formMasterList.actionHold, 10),
+                discount_value: parseFloat(formMasterList.discountValue || 0.00),
+                discount_value_type: parseInt(formMasterList.discountValueType, 10),
+                discount_cash: parseFloat(formMasterList.discountCash),
+                discount_cash_type: formMasterList.discountCashType,
+                discount_transport: parseFloat(formMasterList.discountTransport),
+                discount_transport_type: formMasterList.discountTransportType,
+                is_vat: isVatChecked ? parseInt("1", 10) : parseInt("2", 10),
+                doc_seq: formMasterList.docSEQ,
+                credit_term: parseInt(formMasterList.creditTerm, 10),
+                credit_term_1_day: parseInt(formMasterList.creditTerm1Day, 10),
+                credit_term_1_remark: formMasterList.creditTerm1Remark,
+                credit_term_2_remark: formMasterList.creditTerm2Remark,
+                acc_code: formMasterList.accCode,
+                emp_name: formMasterList.empName,
+                created_date: formatThaiDateUiToDate(formMasterList.createdDate),
+                created_by_name: formMasterList.createdByName,
+                created_by_id: formMasterList.createdById,
+                update_date: formatThaiDateUiToDate(formMasterList.updateDate),
+                update_by_name: formMasterList.updateByName,
+                update_by_id: formMasterList.updateById,
+                approved_date: formatThaiDateUiToDate(formMasterList.approvedDate),
+                approved_by_name: formMasterList.approvedByName,
+                approved_by_id: formMasterList.approvedById,
+                cancel_date: formatThaiDateUiToDate(formMasterList.cancelDate),
+                cancel_by_name: formMasterList.cancelByName,
+                cancel_by_id: formMasterList.cancelById,
+                approved_memo: formMasterList.approvedMemo,
+                printed_status: formMasterList.printedStatus,
+                printed_date: formatThaiDateUiToDate(formMasterList.printedDate),
+                printed_by: formMasterList.printedBy
+            };
+
+            // For Log PR_H
+            // console.log("formMasterData : ", formMasterData);
+
+            // ส่งข้อมูลหลักไปยัง API
+            const response = await Axios.post(`${process.env.REACT_APP_API_URL}/api/update-pr-h`, formMasterData, {
+                headers: { key: process.env.REACT_APP_ANALYTICS_KEY }
+            });
+
+            // ตรวจสอบสถานะการตอบกลับ
+            if (response.data.status === 'OK') {
+
+                // ลบข้อมูลเดิมก่อนจะเริ่มการบันทึกใหม่
+                await deleteDetail('PR_D', `WHERE Doc_ID = ${formMasterList.docId}`);
+
+                const docId = parseInt(formMasterList.docId, 10);
+                let index = 1;
+
+                const detailPromises = formDetailList.map(async (item) => {
+                    const formDetailData = {
+                        doc_id: parseInt(docId, 10),
+                        line: index,
+                        item_id: item.itemId,
+                        item_code: item.itemCode,
+                        item_name: item.itemName,
+                        item_qty: item.itemQty,
+                        item_unit: item.itemUnit,
+                        item_price_unit: parseCurrency(item.itemPriceUnit),
+                        item_discount: parseCurrency(item.itemDiscount),
+                        item_distype: item.itemDisType,
+                        item_total: parseCurrency(item.itemTotal),
+                        item_status: parseInt(item.itemStatus, 10),
+                        wh_id: parseInt(item.whId, 10),
+                        zone_id: parseInt(item.zoneId, 10),
+                        lt_id: parseInt(item.ltId, 10),
+                        ds_seq: item.dsSeq
+                    };
+                    index++;
+
+                    // For Log PR_D
+                    // console.log("formDetailData : ", formDetailData);
+
+                    return Axios.post(`${process.env.REACT_APP_API_URL}/api/create-pr-d`, formDetailData, {
+                        headers: { key: process.env.REACT_APP_ANALYTICS_KEY }
+                    });
+                });
+
+                await Promise.all(detailPromises);
+
+                callInitialize();
+                getAlert(response.data.status, response.data.message);
+            }
+        } catch (error) {
+            getAlert("FAILED", error.response?.data?.message || error.message);
+        }
+    };
+
+    const handleCancel = async () => {
+        try {
+            // ข้อมูลหลักที่จะส่งไปยัง API
+            const formMasterData = {
+                doc_no: formMasterList.docNo,
+                doc_status: parseInt("13", 10),
+                cancel_date: formatThaiDateUiToDate(new Date()),
+                cancel_by_name: window.localStorage.getItem('name'),
+                cancel_by_id: "1",
+            };
+
+            // For Log PR_H
+            // console.log("formMasterData : ", formMasterData);
+
+            // ส่งข้อมูลหลักไปยัง API
+            const response = await Axios.post(`${process.env.REACT_APP_API_URL}/api/cancel-pr-h`, formMasterData, {
+                headers: { key: process.env.REACT_APP_ANALYTICS_KEY }
+            });
+
+            callInitialize();
+            getAlert(response.data.status, response.data.message);
+        } catch (error) {
+            getAlert("FAILED", error.response?.data?.message || error.message);
+        }
+    };
+
     const handleChangeMaster = (e) => {
         const { name, value } = e.target;
         // อัปเดตค่าใน formMasterList
         setFormMasterList((prev) => ({
             ...prev,
             [name]: value,
+        }));
+    };
+
+    const handleChangeDateMaster = (value, name) => {
+        // ตรวจสอบว่า value เป็น moment object หรือไม่
+        const newValue = value && value instanceof moment ? value.format('YYYY-MM-DD') : value;
+
+        // อัปเดตค่าใน formMasterList
+        setFormMasterList((prev) => ({
+            ...prev,
+            [name]: formatDateOnChange(newValue),
         }));
     };
 
@@ -338,13 +584,16 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
             return;
         }
 
+        // แปลงค่าที่กรอกเป็นจำนวนเงิน
+        const numericValue = Number(value) || 0;
+
         const updatedList = [...formDetailList];
-        updatedList[index][field] = value;
+        updatedList[index][field] = numericValue;
 
         const itemQty = Number(updatedList[index].itemQty) || 0;
-        const itemPriceUnit = Number(updatedList[index].itemPriceUnit) || 0;
-        const itemDiscount = Number(updatedList[index].itemDiscount) || 0;
-        const itemDisType = updatedList[index].itemDisType;
+        const itemPriceUnit = Number(parseCurrency(updatedList[index].itemPriceUnit)) || 0;
+        const itemDiscount = Number(parseCurrency(updatedList[index].itemDiscount)) || 0;
+        const itemDisType = String(updatedList[index].itemDisType);
 
         let itemTotal = itemQty * itemPriceUnit;
 
@@ -355,6 +604,21 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
         }
 
         updatedList[index].itemTotal = itemTotal;
+        setFormDetailList(updatedList);
+    };
+
+    const handleFocus = (index, field) => {
+        const updatedList = [...formDetailList];
+        updatedList[index][field] = Number(updatedList[index][field].replace(/,/g, '')) || 0;
+        setFormDetailList(updatedList);
+    };
+
+    const handleBlur = (index, field, value) => {
+        const numericValue = Number(value.replace(/,/g, '')) || 0;
+        const formattedValue = formatCurrency(numericValue);
+
+        const updatedList = [...formDetailList];
+        updatedList[index][field] = formattedValue;
         setFormDetailList(updatedList);
     };
 
@@ -400,12 +664,12 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                     itemName: itemSelected.Item_Name,
                     itemQty: 0,
                     itemUnit: itemSelected.Item_Unit_IN,
-                    itemPriceUnit: itemSelected.Item_Cost,
-                    itemDiscount: 0,
+                    itemPriceUnit: formatCurrency(itemSelected.Item_Cost || 0),
+                    itemDiscount: formatCurrency(0),
                     itemDisType: "1",
                     itemTotal: 0,
                     itemStatus: itemSelected.Item_Status,
-                    whId: null,
+                    whId: 13,
                     whName: itemSelected.WH_Name,
                     zoneId: null,
                     ltId: null,
@@ -477,13 +741,14 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                 <div className="col-3">
                     <div className="d-flex align-items-center">
                         <label>วันที่เอกสาร</label>
-                        <input
-                            type="date"
-                            className="form-control input-spacing"
+                        <Datetime
+                            className="input-spacing-input-date"
                             name="docDate"
-                            value={formMasterList.docDate}
-                            onChange={handleChangeMaster}
-                            id="docDate"
+                            value={formMasterList.docDate || null}
+                            onChange={(date) => handleChangeDateMaster(date, 'docDate')}
+                            dateFormat="DD-MM-YYYY"
+                            timeFormat={false}
+                            inputProps={{ readOnly: true, disabled: mode === 'U' }}
                         />
                     </div>
                 </div>
@@ -503,7 +768,10 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                                 onChange={handleChangeMaster}
                                 disabled={true}
                             />
-                            <button className="btn btn-outline-secondary" onClick={handleApShow}>
+                            <button
+                                className="btn btn-outline-secondary"
+                                onClick={handleApShow}
+                                disabled={formMasterList.docStatus === 1 ? false : true}>
                                 <i className="fas fa-search"></i>
                             </button>
                         </div>
@@ -621,6 +889,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             name="docType"
                             value={formMasterList.docType}
                             onChange={handleChangeMaster}
+                            disabled={formMasterList.docStatus !== 1}
                         >
                             {tbDocType.map((docType) => (
                                 <option key={docType.DocType_Id} value={docType.DocType_Id}>
@@ -666,7 +935,8 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             name="docFor"
                             value={formMasterList.docFor}
                             onChange={handleChangeMaster}
-                            className="form-select form-control input-spacing">
+                            className="form-select form-control input-spacing"
+                            disabled={formMasterList.docStatus !== 1}>
                             <option value="1">ซื้อมาเพื่อใช้</option>
                             <option value="2">ซื้อมาเพื่อขาย</option>
                         </select>
@@ -700,12 +970,15 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                 <div className="col-3">
                     <div className="d-flex align-items-center">
                         <label>Due Date</label>
-                        <input
-                            type="date"
-                            className="form-control input-spacing"
+                        <Datetime
+                            className="input-spacing-input-date"
                             name="docDueDate"
-                            value={formMasterList.docDueDate}
-                            onChange={handleChangeMaster} />
+                            value={formMasterList.docDueDate || null}
+                            onChange={(date) => handleChangeDateMaster(date, 'docDueDate')}
+                            dateFormat="DD-MM-YYYY"
+                            timeFormat={false}
+                            inputProps={{ readOnly: true, disabled: formMasterList.docStatus === 1 ? false : true }}
+                        />
                     </div>
                 </div>
                 <div className="col-6" />
@@ -731,6 +1004,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             value={formMasterList.transportType}
                             onChange={handleChangeMaster}
                             className="form-select form-control input-spacing"
+                            disabled={formMasterList.docStatus !== 1}
                         >
                             {tbTransType.map((transType) => (
                                 <option key={transType.Trans_TypeID} value={transType.Trans_TypeID}>
@@ -765,7 +1039,8 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             name="docRemark1"
                             value={formMasterList.docRemark1 || ''}
                             onChange={handleChangeMaster}
-                            maxLength={100} />
+                            maxLength={100}
+                            disabled={formMasterList.docStatus !== 1} />
                     </div>
                 </div>
                 <div className="col-6">
@@ -777,7 +1052,8 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             name="docRemark2"
                             value={formMasterList.docRemark2 || ''}
                             onChange={handleChangeMaster}
-                            maxLength={500} />
+                            maxLength={500}
+                            disabled={formMasterList.docStatus !== 1} />
                     </div>
                 </div>
             </div>
@@ -792,7 +1068,10 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                     itemDataList={itemDataList}
                     onRowSelectItem={onRowSelectItem}
                     handleItemShow={handleItemShow}
-                    disabled={false}
+                    whDataList={whDataList}
+                    handleFocus={handleFocus}
+                    handleBlur={handleBlur}
+                    disabled={formMasterList.docStatus === 1 ? false : true}
                 />
                 <Summary
                     formMasterList={formMasterList}
@@ -807,9 +1086,15 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                     handleVatChange={handleVatChange}
                     vatAmount={vatAmount}
                     grandTotal={grandTotal}
-                    disabled={false}
+                    disabled={formMasterList.docStatus === 1 ? false : true}
                 />
-                <FormAction onSubmit={handleSubmit} mode={mode} />
+                <FormAction
+                    onSubmit={handleSubmit}
+                    onUpdate={handleUpdate}
+                    onCancel={handleCancel}
+                    mode={mode}
+                    disabled={formMasterList.docStatus === 1 ? false : true}
+                />
             </div>
             <br />
         </>

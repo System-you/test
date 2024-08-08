@@ -1,22 +1,20 @@
+import moment from 'moment';
+
 import {
+    formatDate,
     getCreateDateTime
 } from '../../utils/SamuiUtils';
 
 export const payMasterModel = () => {
-    const today = new Date();
-    const year = today.getFullYear() + 543; // แปลงเป็นปี พ.ศ.
-    const formattedNewDate = `${year}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
-    // const formattedTime = today.toTimeString().split(' ')[0]; // แยกเอาเฉพาะเวลา
-
     return {
         // สำหรับตารางจ่าย
-        datePay: formattedNewDate,
+        datePay: formatDate(moment()),
         amountPay: 0,
 
         // ข้อมูลทั่วไป
         payNo: null,
-        docDate: formattedNewDate,
-        docDueDate: formattedNewDate,
+        docDate: formatDate(moment()),
+        docDueDate: formatDate(moment()),
         payStatus: null,
         payType: 1,
         refDocID: null,
@@ -47,7 +45,7 @@ export const payMasterModel = () => {
         creditTerm2Remark: null,
         accCode: null,
         empName: null,
-        createdDate: getCreateDateTime(new Date()),
+        createdDate: getCreateDateTime(),
         createdByName: window.localStorage.getItem('name'),
         createdById: null,
         updateDate: null,

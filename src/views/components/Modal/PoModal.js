@@ -45,7 +45,7 @@ const PoModal = ({ showPoModal, handlePoClose, poDataList, onRowSelectPo }) => {
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                 />
                             </div>
-                            <div className="table-responsive">
+                            <div className="table-responsive" style={{ maxHeight: '600px', overflowY: 'auto' }}>
                                 <table className="table table-striped table-hover">
                                     <thead className="thead-dark">
                                         <tr>

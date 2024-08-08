@@ -1,25 +1,22 @@
+import moment from 'moment';
+
 import {
+    formatThaiDateUi,
     getCreateDateTime
 } from '../../utils/SamuiUtils';
 
 export const poMasterModel = () => {
-    const today = new Date();
-    const year = today.getFullYear() + 543; // แปลงเป็นปี พ.ศ.
-    const formattedNewDate = `${year}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
-    // const formattedTime = today.toTimeString().split(' ')[0]; // แยกเอาเฉพาะเวลา
-
     return {
         docNo: null,
-        docDate: formattedNewDate,
-        docDueDate: formattedNewDate,
-        docStatus: null,
-        doc_status_paid: null,
-        doc_status_receive: null,
+        docDate: formatThaiDateUi(moment()),
+        docDueDate: formatThaiDateUi(moment()),
+        docStatus: 2,
+        docStatusPaid: 1,
+        docStatusReceive: 1,
         docCode: null,
         docType: 1,
         docFor: 1,
-        doc_is_prc: null,
-        docIsPO: null,
+        docIsPrc: null,
         refDocID: null,
         refDoc: null,
         refDocDate: null,
@@ -48,7 +45,7 @@ export const poMasterModel = () => {
         creditTerm2Remark: null,
         accCode: null,
         empName: null,
-        createdDate: getCreateDateTime(new Date()),
+        createdDate: getCreateDateTime(),
         createdByName: window.localStorage.getItem('name'),
         createdById: null,
         updateDate: null,

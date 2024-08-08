@@ -23,7 +23,7 @@ const DataTable = ({ currentItems, onRowSelected, currentPage, handlePageChange,
     return (
         <div className="col-11">
             <div className="card">
-                <div className="table-responsive">
+                <div className="table-responsive" style={{ maxHeight: '600px', overflowY: 'auto' }}>
                     <table id="basic-datatables" className="table table-striped table-hover">
                         <thead className="thead-dark">
                             <tr>

@@ -17,9 +17,17 @@ function Main({ masterList, detailList, statusColours, name, onPageInsert, onRow
     const [countNotApprove, setCountNotApprove] = useState(0);
     const [countCancel, setCountCancel] = useState(0);
 
+    // ใช้สำหรับค้นหาเอกสาร
+    const [searchTerm, setSearchTerm] = useState('');
+    const [filteredItems, setFilteredItems] = useState([]);
+
     useEffect(() => {
         initialize();
     }, [masterList, detailList]);
+
+    useEffect(() => {
+        filterItems();
+    }, [searchTerm, dataMasterList]);
 
     const initialize = async () => {
         try {
@@ -55,29 +63,28 @@ function Main({ masterList, detailList, statusColours, name, onPageInsert, onRow
         }
     };
 
+    const filterItems = () => {
+        if (searchTerm === '') {
+            setFilteredItems(dataMasterList);
+        } else {
+            const lowercasedSearchTerm = searchTerm.toLowerCase();
+            const filtered = dataMasterList.filter(item =>
+                Object.values(item).some(value =>
+                    typeof value === 'string' &&
+                    value.toLowerCase().includes(lowercasedSearchTerm)
+                )
+            );
+            setFilteredItems(filtered);
+        }
+    };
+
     const handlePageChange = (pageNumber) => {
         setCurrentPage(pageNumber);
     };
 
     const indexOfLastItem = currentPage * itemsPerPage;
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-    const currentItems = dataMasterList.slice(indexOfFirstItem, indexOfLastItem);
-
-    const renderPageNumbers = () => {
-        const pageNumbers = [];
-        for (let i = 1; i <= Math.ceil(dataMasterList.length / itemsPerPage); i++) {
-            pageNumbers.push(
-                <li
-                    key={i}
-                    className={`paginate_button page-item ${currentPage === i ? 'active' : ''}`}
-                    onClick={() => handlePageChange(i)}
-                >
-                    <a href="#" className="page-link">{i}</a>
-                </li>
-            );
-        }
-        return pageNumbers;
-    };
+    const currentItems = filteredItems.slice(indexOfFirstItem, indexOfLastItem);
 
     return (
         <>
@@ -94,6 +101,8 @@ function Main({ masterList, detailList, statusColours, name, onPageInsert, onRow
                                 placeholder="ค้นหาเอกสาร..."
                                 className="form-control"
                                 style={{ paddingRight: '30px' }}
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
                             />
                             <span className="input-group-text">
                                 <i className="fas fa-search"></i>
@@ -156,7 +165,7 @@ function Main({ masterList, detailList, statusColours, name, onPageInsert, onRow
                     onRowSelected={onRowSelected}
                     currentPage={currentPage}
                     handlePageChange={handlePageChange}
-                    dataMasterList={dataMasterList}
+                    dataMasterList={filteredItems}
                     itemsPerPage={itemsPerPage}
                     fieldMappings={{
                         no: 'Doc_No',

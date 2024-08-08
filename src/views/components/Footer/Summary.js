@@ -42,7 +42,7 @@ const Summary = ({
                                     <div className="col-3">
                                         <div className="row">
                                             <div className="radio-inline">
-                                                <input
+                                                {/* <input
                                                     className="form-check-input"
                                                     type="checkbox"
                                                     name="1"
@@ -50,7 +50,7 @@ const Summary = ({
                                                     onChange={handleCheckboxChange}
                                                     disabled={true}
                                                 />
-                                                <label className="form-check-label">฿</label>
+                                                <label className="form-check-label">฿</label> */}
                                                 <input
                                                     className="form-check-input"
                                                     type="checkbox"

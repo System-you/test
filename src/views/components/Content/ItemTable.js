@@ -11,6 +11,9 @@ const ItemTable = ({
     itemDataList,
     onRowSelectItem,
     handleItemShow,
+    whDataList,
+    handleFocus,
+    handleBlur,
     disabled
 }) => {
 
@@ -50,7 +53,7 @@ const ItemTable = ({
                     onRowSelectItem={onRowSelectItem}
                 />
                 <div className="card-body">
-                    <div className="table-responsive">
+                    <div className="table-responsive" style={{ maxHeight: '500px', overflowY: 'auto' }}>
                         <table id="basic-datatables" className="table table-striped table-hover">
                             <thead className="thead-dark">
                                 <tr>
@@ -97,7 +100,7 @@ const ItemTable = ({
                                         </td>
 
                                         {/* ชื่อสินค้า */}
-                                        <td className="text-center">
+                                        <td className="text-left">
                                             <span>{item.itemName || ''}</span>
                                         </td>
 
@@ -109,8 +112,7 @@ const ItemTable = ({
                                                 value={item.itemQty || 0}
                                                 onChange={(e) => handleChangeDetail(index, 'itemQty', e.target.value)}
                                                 disabled={window.location.pathname === '/product-receipt'
-                                                    ? (!disabled ? true : false) || (item.itemRecBalance === 0 ? true : false)
-                                                    : disabled}
+                                                    ? (!disabled ? true : false) : disabled}
                                             />
                                         </td>
 
@@ -119,39 +121,53 @@ const ItemTable = ({
                                             hidden={window.location.pathname === '/purchase-order' ? false : true}
                                             className="text-center"
                                         >
-                                            {disabled ? (
+                                            {/* {disabled ? (
                                                 <span>{item.itemRecQty || 0}</span>
                                             ) : (
                                                 <input
                                                     type="text"
                                                     className="form-control text-center"
                                                     value={item.itemRecQty || 0}
-                                                    onChange={(e) => handleChangeDetail(index, 'itemQty', e.target.value)}
+                                                    onChange={(e) => handleChangeDetail(index, 'itemRecQty', e.target.value)}
                                                     disabled={disabled}
                                                 />
-                                            )}
+                                            )} */}
+                                            <input
+                                                type="text"
+                                                className="form-control text-center"
+                                                value={item.itemRecQty || 0}
+                                                onChange={(e) => handleChangeDetail(index, 'itemRecQty', e.target.value)}
+                                                disabled={disabled}
+                                            />
                                         </td>
 
                                         {/* จำนวนค้างรับ */}
                                         <td
                                             hidden={!isPurchaseOrderOrReceipt()}
                                             className="text-center">
-                                            {disabled ? (
+                                            {/* {disabled ? (
                                                 <span>{item.itemRecBalance || 0}</span>
                                             ) : (
                                                 <input
                                                     type="text"
                                                     className="form-control text-center"
                                                     value={item.itemRecBalance || 0}
-                                                    onChange={(e) => handleChangeDetail(index, 'itemQty', e.target.value)}
+                                                    onChange={(e) => handleChangeDetail(index, 'itemRecBalance', e.target.value)}
                                                     disabled={disabled}
                                                 />
-                                            )}
+                                            )} */}
+                                            <input
+                                                type="text"
+                                                className="form-control text-center"
+                                                value={item.itemRecBalance || 0}
+                                                onChange={(e) => handleChangeDetail(index, 'itemRecBalance', e.target.value)}
+                                                disabled={disabled}
+                                            />
                                         </td>
 
                                         {/* หน่วย */}
                                         <td className="text-center">
-                                            {disabled ? (
+                                            {/* {disabled ? (
                                                 <span>{item.itemUnit || ''}</span>
                                             ) : (
                                                 <input
@@ -161,42 +177,71 @@ const ItemTable = ({
                                                     disabled={true}
                                                     onChange={(e) => handleChangeDetail(index, 'itemUnit', e.target.value)}
                                                 />
-                                            )}
+                                            )} */}
+                                            <input
+                                                type="text"
+                                                className="form-control"
+                                                value={item.itemUnit || ''}
+                                                disabled={true}
+                                                onChange={(e) => handleChangeDetail(index, 'itemUnit', e.target.value)}
+                                            />
                                         </td>
 
                                         {/* ราคาต่อหน่วย */}
                                         <td className="text-end">
-                                            {disabled ? (
+                                            {/* {disabled ? (
                                                 <span>{formatCurrency(item.itemPriceUnit || 0)}</span>
                                             ) : (
                                                 <input
                                                     type="text"
                                                     className="form-control text-end"
-                                                    value={item.itemPriceUnit || 0}
+                                                    value={item.itemPriceUnit || ''}
                                                     onChange={(e) => handleChangeDetail(index, 'itemPriceUnit', e.target.value)}
+                                                    onFocus={(e) => handleFocus(index, 'itemPriceUnit')}
+                                                    onBlur={(e) => handleBlur(index, 'itemPriceUnit', e.target.value)}
                                                     disabled={disabled}
                                                 />
-                                            )}
+                                            )} */}
+                                            <input
+                                                type="text"
+                                                className="form-control text-end"
+                                                value={item.itemPriceUnit || ''}
+                                                onChange={(e) => handleChangeDetail(index, 'itemPriceUnit', e.target.value)}
+                                                onFocus={(e) => handleFocus(index, 'itemPriceUnit')}
+                                                onBlur={(e) => handleBlur(index, 'itemPriceUnit', e.target.value)}
+                                                disabled={disabled}
+                                            />
                                         </td>
 
                                         {/* ส่วนลด */}
                                         <td className="text-end">
-                                            {disabled ? (
+                                            {/* {disabled ? (
                                                 <span>{formatCurrency(item.itemDiscount || 0)}</span>
                                             ) : (
                                                 <input
                                                     type="text"
                                                     className="form-control text-end"
-                                                    value={item.itemDiscount || 0}
+                                                    value={item.itemDiscount || ''}
                                                     onChange={(e) => handleChangeDetail(index, 'itemDiscount', e.target.value)}
+                                                    onFocus={(e) => handleFocus(index, 'itemDiscount')}
+                                                    onBlur={(e) => handleBlur(index, 'itemDiscount', e.target.value)}
                                                     disabled={disabled}
                                                 />
-                                            )}
+                                            )} */}
+                                            <input
+                                                type="text"
+                                                className="form-control text-end"
+                                                value={item.itemDiscount || ''}
+                                                onChange={(e) => handleChangeDetail(index, 'itemDiscount', e.target.value)}
+                                                onFocus={(e) => handleFocus(index, 'itemDiscount')}
+                                                onBlur={(e) => handleBlur(index, 'itemDiscount', e.target.value)}
+                                                disabled={disabled}
+                                            />
                                         </td>
 
                                         {/* % */}
                                         <td className="text-center">
-                                            {disabled ? (
+                                            {/* {disabled ? (
                                                 <span>{item.itemDisType === "1" ? "฿" : item.itemDisType === "2" ? "%" : ""}</span>
                                             ) : (
                                                 <select
@@ -208,7 +253,16 @@ const ItemTable = ({
                                                     <option value="1">฿</option>
                                                     <option value="2">%</option>
                                                 </select>
-                                            )}
+                                            )} */}
+                                            <select
+                                                className="form-select"
+                                                value={item.itemDisType || ''}
+                                                onChange={(e) => handleChangeDetail(index, 'itemDisType', e.target.value)}
+                                                disabled={disabled}
+                                            >
+                                                <option value="1">฿</option>
+                                                <option value="2">%</option>
+                                            </select>
                                         </td>
 
                                         {/* จำนวนเงินรวม */}
@@ -218,7 +272,37 @@ const ItemTable = ({
 
                                         {/* คลังสินค้า */}
                                         <td className="text-center">
-                                            <span>{item.whName || ''}</span>
+                                            {/* {disabled ? (
+                                                <span>{item.whName || ''}</span>
+                                            ) : (
+                                                <select
+                                                    name="whId"
+                                                    value={item.whId}
+                                                    onChange={(e) => handleChangeDetail(index, 'whId', e.target.value)}
+                                                    className="form-select form-control"
+                                                    disabled={disabled}
+                                                >
+                                                    {whDataList.map((warehouse) => (
+                                                        <option key={warehouse.WH_Id} value={warehouse.WH_Id}>
+                                                            {warehouse.WH_Name}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            )} */}
+                                            <select
+                                                name="whId"
+                                                value={item.whId}
+                                                onChange={(e) => handleChangeDetail(index, 'whId', e.target.value)}
+                                                className="form-select form-control"
+                                                disabled={window.location.pathname === '/product-receipt'
+                                                    ? (!disabled ? true : false) : disabled}
+                                            >
+                                                {whDataList.map((warehouse) => (
+                                                    <option key={warehouse.WH_Id} value={warehouse.WH_Id}>
+                                                        {warehouse.WH_Name}
+                                                    </option>
+                                                ))}
+                                            </select>
                                         </td>
 
                                         {/* ลบ */}

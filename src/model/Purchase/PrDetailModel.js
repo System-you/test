@@ -1,5 +1,7 @@
 export const prDetailModel = (id) => ({
     id: id,
+    dtId: null,
+    docId: null,
     line: null,
     itemId: null,
     itemCode: null,

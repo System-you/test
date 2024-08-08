@@ -25,16 +25,7 @@ function ProductReceipt() {
 
       if (masterList && masterList.length > 0) {
         const sortedData = masterList.sort((a, b) => a.Rec_No - b.Rec_No);
-        setDataMasterList(sortedData, "REC");
-
-        // หาค่าสูงของ DocNo ใน API_101_PR_H
-        const maxRec = getMaxRecNo(sortedData);
-        setMaxRecNo(maxRec);
-      } else {
-        const currentYear = new Date().getFullYear();
-        const thaiYear = currentYear + 543; // Convert to Thai year (พ.ศ.)
-        const maxRecNo = "REC" + thaiYear.toString().slice(-2) + "07" + "0001";
-        setMaxRecNo(maxRecNo);
+        setDataMasterList(sortedData);
       }
 
       // if (detailList && detailList.length > 0) {
@@ -44,6 +35,11 @@ function ProductReceipt() {
       if (docStatusColour && docStatusColour.length > 0) {
         setStatusColours(docStatusColour);
       }
+
+      // หาค่าสูงของ RecNo ใน REC_H
+      const findMaxRecNo = await getAllData('REC_H', 'ORDER BY Rec_No DESC');
+      const maxRec = getMaxRecNo(findMaxRecNo);
+      setMaxRecNo(maxRec);
     } catch (error) {
       getAlert('FAILED', error.message);
     }

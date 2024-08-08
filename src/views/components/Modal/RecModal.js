@@ -1,24 +1,31 @@
 import React, { useState, useEffect } from 'react';
-import { formatCurrency, getAlert } from '../../../utils/SamuiUtils';
+import { formatThaiDateUi, formatThaiDate, formatCurrency, getAlert } from '../../../utils/SamuiUtils';
+import Datetime from 'react-datetime';
+import moment from 'moment';
 
-const RecModal = ({ showRecModal, handleRecClose, recDataList, onRowSelectRec, onConfirmRecSelection }) => {
+const RecModal = ({ showRecModal, handleRecClose, recDataList, onConfirmRecSelection }) => {
     const [searchTerm, setSearchTerm] = useState('');
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
     const [filteredRecDataList, setFilteredRecDataList] = useState(recDataList);
     const [selectedItems, setSelectedItems] = useState([]);
 
     useEffect(() => {
         setFilteredRecDataList(
             recDataList.filter(rec =>
-                rec.Rec_No.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                rec.AP_Name.toLowerCase().includes(searchTerm.toLowerCase())
+                (rec.Rec_No.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    rec.AP_Name.toLowerCase().includes(searchTerm.toLowerCase())) &&
+                (!startDate || !endDate || (moment(formatThaiDate(rec.Rec_Date)).isBetween(startDate, endDate, 'day', '[]')))
             )
         );
-    }, [searchTerm, recDataList]);
+    }, [searchTerm, startDate, endDate, recDataList]);
 
     useEffect(() => {
         if (showRecModal) {
             setSearchTerm('');
             setSelectedItems([]);
+            setStartDate(moment(Math.min(...recDataList.map(rec => new Date(formatThaiDate(rec.Rec_Date))))));
+            setEndDate(moment(Math.max(...recDataList.map(rec => new Date(formatThaiDate(rec.Rec_Date))))));
         }
     }, [showRecModal]);
 
@@ -67,16 +74,48 @@ const RecModal = ({ showRecModal, handleRecClose, recDataList, onRowSelectRec, o
                             </button>
                         </div>
                         <div className="modal-body">
-                            <div className="form-group">
-                                <input
-                                    type="text"
-                                    className="form-control"
-                                    placeholder="ค้นหาเลขที่เอกสาร (REC) หรือ AP_NAME"
-                                    value={searchTerm || ''}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                />
+                            <div className="row">
+                                <div className="col-8">
+                                    <div className="form-group">
+                                        <span className="fw-bold">ค้นหาเอกสาร</span>
+                                        <input
+                                            style={{ width: '100%' }}
+                                            type="text"
+                                            className="form-control"
+                                            placeholder="ค้นหาเลขที่เอกสาร (REC) หรือ AP_NAME"
+                                            value={searchTerm || ''}
+                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="col-2">
+                                    <div className="form-group">
+                                        <span className="fw-bold">วันที่เริ่มต้น</span>
+                                        <Datetime
+                                            className="input-spacing-input-date"
+                                            value={startDate}
+                                            dateFormat="DD-MM-YYYY"
+                                            timeFormat={false}
+                                            onChange={date => setStartDate(date)}
+                                            inputProps={{ readOnly: true, disabled: false }}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="col-2">
+                                    <div className="form-group">
+                                        <span className="fw-bold">วันที่สิ้นสุด</span>
+                                        <Datetime
+                                            className="input-spacing-input-date"
+                                            value={endDate}
+                                            dateFormat="DD-MM-YYYY"
+                                            timeFormat={false}
+                                            onChange={date => setEndDate(date)}
+                                            inputProps={{ readOnly: true, disabled: false }}
+                                        />
+                                    </div>
+                                </div>
                             </div>
-                            <div className="table-responsive">
+                            <div className="table-responsive" style={{ maxHeight: '600px', overflowY: 'auto' }}>
                                 <table className="table table-striped table-hover">
                                     <thead className="thead-dark">
                                         <tr>
@@ -87,8 +126,9 @@ const RecModal = ({ showRecModal, handleRecClose, recDataList, onRowSelectRec, o
                                                 }} checked={filteredRecDataList.length > 0 && selectedItems.length === filteredRecDataList.length} />
                                             </th>
                                             <th className="text-center" style={{ width: '15%' }}>เลขที่เอกสาร (REC)</th>
-                                            <th className="text-center" style={{ width: '40%' }}>AP_NAME</th>
-                                            <th className="text-center" style={{ width: '32%' }}>รายละเอียดเอกสาร</th>
+                                            <th className="text-center" style={{ width: '35%' }}>AP_NAME</th>
+                                            <th className="text-center" style={{ width: '27%' }}>รายละเอียดเอกสาร</th>
+                                            <th className="text-center" style={{ width: '10%' }}>วันที่รับเข้า</th>
                                             <th className="text-center" style={{ width: '10%' }}>ราคารวม</th>
                                         </tr>
                                     </thead>
@@ -111,6 +151,7 @@ const RecModal = ({ showRecModal, handleRecClose, recDataList, onRowSelectRec, o
                                                     <td className="text-center">{rec.Rec_No}</td>
                                                     <td className="text-left">{rec.AP_Name}</td>
                                                     <td className="text-left">{rec.Doc_Remark1}</td>
+                                                    <td className="text-center">{formatThaiDateUi(rec.Rec_Date)}</td>
                                                     <td className="text-end">{formatCurrency(rec.NetTotal)}</td>
                                                 </tr>
                                             ))

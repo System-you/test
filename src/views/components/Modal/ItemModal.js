@@ -50,7 +50,7 @@ const ItemModal = ({ showItemModal, handleItemClose, itemDataList, onRowSelectIt
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                 />
                             </div>
-                            <div className="table-responsive">
+                            <div className="table-responsive" style={{ maxHeight: '650px', overflowY: 'auto' }}>
                                 <table className="table table-striped table-hover">
                                     <thead className="thead-dark">
                                         <tr>

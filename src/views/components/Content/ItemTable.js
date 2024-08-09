@@ -61,7 +61,7 @@ const ItemTable = ({
                                     <th className="text-center" style={{ width: '10%' }}>รหัสสินค้า</th>
                                     <th
                                         className="text-center"
-                                        style={window.location.pathname === '/purchase-order' ? { width: '12%' } : { width: '20%' }}>
+                                        style={window.location.pathname === '/purchase-order' ? { width: '15%' } : { width: '23%' }}>
                                         ชื่อสินค้า
                                     </th>
                                     <th className="text-center" style={{ width: '8%' }}>จำนวน</th>
@@ -79,10 +79,16 @@ const ItemTable = ({
                                     <th className="text-center" style={{ width: '8%' }}>ราคาต่อหน่วย</th>
                                     <th className="text-center" style={{ width: '8%' }}>ส่วนลด</th>
                                     <th className="text-center" style={{ width: '5%' }}>%</th>
-                                    <th className="text-center" style={{ width: '10%' }}>จำนวนเงินรวม</th>
-                                    <th
-                                        className="text-center"
-                                        style={{ width: getColumnWidth() }}>
+                                    <th className="text-center" style={
+                                        window.location.pathname === '/purchase-request'
+                                            || window.location.pathname === '/purchase-order' ?
+                                            { width: '10%' } : { width: '7%' }}>
+                                        จำนวนเงินรวม
+                                    </th>
+                                    <th className="text-center"
+                                        style={{ width: getColumnWidth() }}
+                                        hidden={window.location.pathname === '/purchase-request'
+                                            || window.location.pathname === '/purchase-order'}>
                                         คลังสินค้า
                                     </th>
                                     <th className="text-center" style={{ width: '3%' }}>ลบ</th>
@@ -271,24 +277,9 @@ const ItemTable = ({
                                         </td>
 
                                         {/* คลังสินค้า */}
-                                        <td className="text-center">
-                                            {/* {disabled ? (
-                                                <span>{item.whName || ''}</span>
-                                            ) : (
-                                                <select
-                                                    name="whId"
-                                                    value={item.whId}
-                                                    onChange={(e) => handleChangeDetail(index, 'whId', e.target.value)}
-                                                    className="form-select form-control"
-                                                    disabled={disabled}
-                                                >
-                                                    {whDataList.map((warehouse) => (
-                                                        <option key={warehouse.WH_Id} value={warehouse.WH_Id}>
-                                                            {warehouse.WH_Name}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            )} */}
+                                        <td className="text-center"
+                                            hidden={window.location.pathname === '/purchase-request'
+                                                || window.location.pathname === '/purchase-order'}>
                                             <select
                                                 name="whId"
                                                 value={item.whId}

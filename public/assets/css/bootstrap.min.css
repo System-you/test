@@ -532,7 +532,7 @@ button {
 [type=reset]:not(:disabled),
 [type=submit]:not(:disabled),
 button:not(:disabled) {
-    cursor: pointer
+    cursor: pointer;
 }
 
 ::-moz-focus-inner {
@@ -2444,7 +2444,7 @@ progress {
 }
 
 .form-control[type=file]:not(:disabled):not([readonly]) {
-    cursor: pointer
+    cursor: pointer;
 }
 
 .form-control:focus {

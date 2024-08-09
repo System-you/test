@@ -197,10 +197,10 @@ function Form({ callInitialize, mode, name, maxRecNo }) {
             };
 
             // ค้นหาข้อมูลของ Detail ด้วย Rec_ID
-            const fromDetail = await getByRecId('REC_D', fromDatabase.Rec_Id, `ORDER BY Line ASC`);
+            const fromDetail = await getByRecId('REC_D', fromDatabase.Rec_Id, `AND Item_Status = 1 ORDER BY Line ASC`);
 
             // ค้นหาข้อมูลของ Detail ของ PO ด้วย Doc_ID
-            const formPoList = await getByDocId("PO_D", fromDatabase.Ref_DocID, `ORDER BY Line ASC`);
+            const formPoList = await getByDocId("PO_D", fromDatabase.Ref_DocID, `AND Item_Status = 1 ORDER BY Line ASC`);
             setPoDList(formPoList);
 
             if (fromDetail.length > 0) {
@@ -438,7 +438,7 @@ function Form({ callInitialize, mode, name, maxRecNo }) {
                                 ds_seq: formatDateTime(new Date())
                             };
 
-                            const detailResponse = await getByDocId("PO_D", formMasterList.refDocID, `AND Item_Id = ${item.itemId}`);
+                            const detailResponse = await getByDocId("PO_D", formMasterList.refDocID, `AND Item_Status = 1  AND Item_Id = ${item.itemId}`);
 
                             // if (ปิด PO && ค้างรับมีค่ามากกว่า 0 )
                             if (status === 3 && detailResponse[0].Item_REC_Balance > 0) {
@@ -482,7 +482,6 @@ function Form({ callInitialize, mode, name, maxRecNo }) {
                                 });
 
                                 // คำนวณค่าต่าง ๆ
-                                // มาจาก Table PO_D 
                                 const itemQty = detailResponse[0].Item_REC_Qty + itemQtyRec; // 0 + 3 = 3
                                 const itemRecQty = detailResponse[0].Item_REC_Qty + itemQtyRec; // 0 + 3 = 3
                                 const itemRecBalance = parseFloat("0.00");
@@ -528,30 +527,6 @@ function Form({ callInitialize, mode, name, maxRecNo }) {
                         await Promise.all(detailPromises);
 
                         await updateStatusPo(status, formMasterList.refDocID);
-
-                        // ดึงข้อมูลทั้งหมดที่ตรงกับ Doc_ID ที่ระบุ
-                        // const detailResponse = await getByDocId("PO_D", formMasterList.refDocID, `ORDER BY Line ASC`);
-
-                        // validDetails.forEach(async (item, index) => {
-                        //     let line = index + 1;
-
-                        //     // กรองข้อมูลตาม line ที่ต้องการ
-                        //     let details = detailResponse.filter(detail => detail.Line === line);
-
-                        //     if (details.length > 0 && details[0].Item_REC_Qty !== undefined) {
-                        //         // คำนวณค่าต่าง ๆ
-                        //         const itemQty = parseFloat(item.itemQty);
-                        //         const itemRecQty = parseFloat(details[0].Item_REC_Qty) + itemQty;
-                        //         const itemRecBalance = parseFloat(details[0].Item_REC_Balance) - itemQty;
-
-                        //         // ลบจำนวนสินค้าที่ PO_D จำนวนรับ และ จำนวนค้างรับ (updateQty = async (table, updateCode, where))
-                        //         await updateQty(
-                        //             'PO_D',
-                        //             `Item_REC_Qty = ${itemRecQty}, Item_REC_Balance = ${itemRecBalance}`,
-                        //             `WHERE Doc_ID = ${formMasterList.refDocID} AND Line = ${line}`
-                        //         );
-                        //     }
-                        // });
                     }
                 }
 
@@ -701,10 +676,6 @@ function Form({ callInitialize, mode, name, maxRecNo }) {
                     const recId = parseInt(formMasterList.recId, 10);
                     let lineIndex = 1;
 
-                    // หาค่า Line สูงสุด สำหรับในกรณีถ้าปิด PO แล้ว Insert
-                    // const getMaxLine = await getLineByDocId("PO_D", formMasterList.refDocID);
-                    // let maxLine = parseInt(getMaxLine[0].Line, 10) + 1;
-
                     const detailPromises = validDetails.map(async (item) => {
 
                         const formDetailData = {
@@ -727,10 +698,10 @@ function Form({ callInitialize, mode, name, maxRecNo }) {
                         };
 
                         // Find REC
-                        let recDetail = await getByRecId("REC_D", formMasterList.recId, `AND Item_Id = ${item.itemId}`);
+                        let recDetail = await getByRecId("REC_D", formMasterList.recId, `AND Item_Status = 1 AND Item_Id = ${item.itemId}`);
 
                         // Find PO
-                        let detailResponse = await getByDocId("PO_D", formMasterList.refDocID, `AND Item_Id = ${item.itemId}`);
+                        let detailResponse = await getByDocId("PO_D", formMasterList.refDocID, `AND Item_Status = 1 AND Item_Id = ${item.itemId}`);
 
                         // if (ปิด PO && ค้างมีค่ามากกว่า 0 )
                         //if (status === 3 && detailResponse[0].Item_REC_Balance > 0) {
@@ -871,17 +842,25 @@ function Form({ callInitialize, mode, name, maxRecNo }) {
     const updateStatusPo = async (status, docId) => {
         try {
             // Find PO
-            const poDetailList = await getByDocId("PO_D", docId, `ORDER BY Line ASC`);
+            const poDetailList = await getByDocId("PO_D", docId, `AND Item_Status = 1 ORDER BY Line ASC`);
 
             // เช็กเงื่อนไขเพิ่มว่า ถ้า PO.Item_REC_Balance = 0 ทุกรายการ ให้ UPDATE PO_H.Doc_Status เป็น "ปิด PO"
             if (status === 3 && poDetailList.every(item => item.Item_REC_Balance === 0)) {
 
                 // อัพสถานะของ PO_H เมื่อรับสินค้าครบ และ จำนวนคงเหลือเป็น 0 ทั้งหมด
-                return await updateStatusByNo(
+                await updateStatusByNo(
                     'PO_H',                                        // table: ชื่อตาราง
                     'Doc_Status',                                  // field: ชื่อฟิลด์
                     4,                                             // status: สถานะที่ต้องการอัพเดท
-                    `WHERE Doc_Id = '${docId}'`    // where: เงื่อนไขในการอัพเดท
+                    `WHERE Doc_Id = '${docId}'`                    // where: เงื่อนไขในการอัพเดท
+                );
+
+                // อัพสถานะของ PO_H.Doc_Status ทันที
+                await updateStatusByNo(
+                    'PO_H',                            // table: ชื่อตาราง
+                    'Doc_Status_Receive',              // field: ชื่อฟิลด์
+                    3,                                 // status: สถานะที่ต้องการอัพเดท
+                    `WHERE Doc_Id = '${docId}'`        // where: เงื่อนไขในการอัพเดท
                 );
 
             }
@@ -1070,14 +1049,14 @@ function Form({ callInitialize, mode, name, maxRecNo }) {
                 };
             };
 
-            const getAllItem = await getAllData('API_0202_PO_D', 'ORDER BY Line ASC');
+            const getAllItem = await getAllData('API_0202_PO_D', 'AND Item_Status = 1 ORDER BY Line ASC');
             const filterItem = getAllItem.filter(item => item.Doc_No === poSelected.Doc_No);
 
-            const getAllItemOld = await getAllData('API_0202_PO_D', 'ORDER BY Line ASC');
+            const getAllItemOld = await getAllData('API_0202_PO_D', 'AND Item_Status = 1 ORDER BY Line ASC');
             const filterItemOld = getAllItemOld.filter(item => item.Doc_No === poSelected.Doc_No);
 
             // Find PO
-            const getPoD = await getByDocId("PO_D", filterItem[0].Doc_ID, `ORDER BY Line ASC`);
+            const getPoD = await getByDocId("PO_D", filterItem[0].Doc_ID, `AND Item_Status = 1 ORDER BY Line ASC`);
             setPoDList(getPoD);
 
             if (filterItem.length > 0) {
@@ -1624,10 +1603,10 @@ function Form({ callInitialize, mode, name, maxRecNo }) {
                                 </button>
                                 <button
                                     type="button"
-                                    className="btn btn-lg w-25 shadow text-white"
+                                    className="btn btn-lg w-30 shadow text-white"
                                     style={{ backgroundColor: 'red', fontSize: '16px' }}
                                     onClick={() => mode === 'U' ? handleUpdate(parseInt("3", 10)) : handleSubmit(parseInt("3", 10))}>
-                                    ปิด PO
+                                    ปิดงานใบ PO
                                 </button>
                             </div>
 

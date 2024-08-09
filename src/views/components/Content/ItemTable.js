@@ -64,7 +64,10 @@ const ItemTable = ({
                                         style={window.location.pathname === '/purchase-order' ? { width: '15%' } : { width: '23%' }}>
                                         ชื่อสินค้า
                                     </th>
-                                    <th className="text-center" style={{ width: '8%' }}>จำนวน</th>
+                                    <th className="text-center"
+                                        style={{ width: '8%' }}>
+                                        จำนวน {window.location.pathname === '/purchase-order' ? '(PO)' : ''}
+                                    </th>
                                     <th hidden={window.location.pathname === '/purchase-order' ? false : true}
                                         className="text-center"
                                         style={{ width: '8%' }}>
@@ -73,7 +76,7 @@ const ItemTable = ({
                                     <th hidden={!isPurchaseOrderOrReceipt()}
                                         className="text-center"
                                         style={{ width: '8%' }}>
-                                        จำนวนค้างรับ
+                                        จำนวนค้างรับ {window.location.pathname === '/purchase-order' ? '(PO)' : ''}
                                     </th>
                                     <th className="text-center" style={{ width: '6%' }}>หน่วย</th>
                                     <th className="text-center" style={{ width: '8%' }}>ราคาต่อหน่วย</th>

@@ -36,9 +36,11 @@ import {
     formatThaiDateUi,
     formatThaiDateUiToDate,
     getMaxDocNo,
+    getLineByDocId,
     getCreateDateTime,
     setCreateDateTime,
     updateStatusByNo,
+    updateQty,
     deleteDetail
 } from '../../../../utils/SamuiUtils';
 
@@ -170,7 +172,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
             };
 
             // ค้นหาข้อมูลของ Detail ด้วย Doc_ID
-            const fromDetail = await getByDocId('PO_D', fromDatabase.Doc_Id, `ORDER BY Line ASC`);
+            const fromDetail = await getByDocId('PO_D', fromDatabase.Doc_Id, `AND Item_Status = 1 ORDER BY Line ASC`);
 
             if (fromDetail.length > 0) {
                 const newFormDetails = fromDetail.map((item, index) => createNewRow(formDetailList.length + index, item));
@@ -595,11 +597,41 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
 
     const handleRecover = async () => {
         try {
-            // ข้อมูลหลักที่จะส่งไปยัง API
+            const prDetailList = await getByDocId("PR_D", formMasterList.refDocID, `ORDER BY Line ASC`);
+            let hasRecBalance = false;
+
+            // Loop Item
+            const detailPromises = formDetailList.map(async (item) => {
+
+                let prDetail = prDetailList.find(pr => pr.Item_Id === item.itemId);
+
+                // => ให้เช็คจำนวนรับสินค้าแต่ละตัว กับ PR ว่าเท่ากันไหม?
+                // => ถ้าไม่เท่าแสดงว่าค้างรับ 
+                if (item.itemQty !== prDetail.Item_Qty) {
+                    // => ให้ปรับจำนวนสินค้าตาม PR แล้วคำนวณ Balance ใหม่
+                    let newItemQty = parseInt(prDetail.Item_Qty);
+                    let newItemBalance = newItemQty - parseInt(item.itemRecQty);
+
+                    // อัพเดทจำนวนที่คำนวณใหม่ (โดยการ Where ด้วย DT_Id)
+                    await updateQty(
+                        'PO_D',
+                        `Item_Qty = ${newItemQty}, Item_Total = ${prDetail.Item_Total}, Item_REC_Balance = ${newItemBalance}`,
+                        `WHERE DT_Id = ${item.dtId} AND Item_Status = 1`
+                    );
+
+                    hasRecBalance = true;
+                }
+            });
+
+            await Promise.all(detailPromises);
+
+            // DELETE PO_D เฉพาะรายการที่ค้างเก็บประวัติทั้งหมด (Where DocId & Item_Status = 0)
+            await deleteDetail('PO_D', `WHERE Doc_ID = ${formMasterList.docId} AND Item_Status = 0`);
+
             const formMasterData = {
                 doc_no: formMasterList.docNo,
                 doc_status: parseInt("2", 10),
-                doc_status_receive: parseInt("2", 10)
+                doc_status_receive: hasRecBalance ? parseInt("2", 10) : parseInt("3", 10)
             };
 
             // ส่งข้อมูลหลักไปยัง API
@@ -681,12 +713,83 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
 
     const updateStatusClosePo = async () => {
         try {
-            // อัพสถานะของ PO_H ทันที ตาม Status ที่ส่งมา
+            // ปุ่ม "ปิด PO" (Business ให้ทำเหมือน Dialog ปิด PO ของใบรับ) 
+            if (formMasterList.docStatusReceive === 2) {
+                // หาค่า Line สูงสุด สำหรับในกรณีถ้าปิด PO แล้ว Insert (อยู่นอก Loop ได้)
+                const getMaxLine = await getLineByDocId("PO_D", formMasterList.docId);
+                let maxLine = parseInt(getMaxLine[0].Line, 10) + 1;
+
+                // Loop Item
+                const detailPromises = formDetailList.map(async (item) => {
+
+                    // เงื่อนไขหาสินค้าที่รับไม่ครบ = จำนวนคงเหลือต้องไม่ = 0
+                    if (Number(item.itemRecBalance) !== 0) {
+                        // *************************************** UPDATE PO_D ****************************************
+                        let itemRecQty = parseInt(item.itemRecQty);
+                        let itemRecBalance = parseFloat("0.00");
+                        let itemDiscount = parseInt(item.itemDiscount);
+                        let updateItemTotal = itemRecQty * parseCurrency(item.itemPriceUnit);
+
+                        if (item.itemDisType === 2) {
+                            updateItemTotal -= (itemDiscount / 100) * updateItemTotal; // ลดตามเปอร์เซ็นต์
+                        } else {
+                            updateItemTotal -= itemDiscount; // ลดตามจำนวนเงิน
+                        }
+
+                        // Update PO_D
+                        await updateQty(
+                            'PO_D',
+                            `Item_Qty = ${itemRecQty}, Item_Total = ${updateItemTotal}, Item_REC_Balance = ${itemRecBalance}`,
+                            `WHERE Doc_ID = ${formMasterList.docId} AND Item_Id = ${item.itemId} AND Item_Status = 1`
+                        );
+
+                        // **************************************** INSERT PO_D ***************************************
+                        const formInsert = {
+                            doc_id: parseInt(formMasterList.docId, 10),
+                            line: maxLine,
+                            item_id: item.itemId,
+                            item_code: item.itemCode,
+                            item_name: item.itemName,
+                            item_qty: itemRecQty,
+                            item_unit: item.itemUnit,
+                            item_price_unit: parseCurrency(item.itemPriceUnit),
+                            item_discount: parseCurrency(item.itemDiscount),
+                            item_distype: item.itemDisType === '1' ? 1 : 2,
+                            item_total: parseFloat(itemRecQty * parseCurrency(item.itemPriceUnit)),
+                            item_rec_qty: parseFloat("0.00"),
+                            item_rec_balance: itemRecQty,
+                            item_status: parseInt("0", 10),
+                            wh_id: parseInt(item.whId, 10),
+                            zone_id: parseInt("1", 10),
+                            lt_id: parseInt("1", 10),
+                            ds_seq: formatDateTime(new Date())
+                        };
+
+                        maxLine++;
+
+                        await Axios.post(`${process.env.REACT_APP_API_URL}/api/create-po-d`, formInsert, {
+                            headers: { key: process.env.REACT_APP_ANALYTICS_KEY }
+                        });
+                        // *******************************************************************************
+                    }
+
+                });
+
+                await Promise.all(detailPromises);
+            }
+
+            // อัพสถานะของ PO_H.Doc_Status และ PO_H.Doc_Status_Receive ทันที
             await updateStatusByNo(
-                'PO_H',                            // table: ชื่อตาราง
-                'Doc_Status',                      // field: ชื่อฟิลด์
-                4,                                 // status: สถานะที่ต้องการอัพเดท
-                `WHERE Doc_No = '${maxDocNo}'`     // where: เงื่อนไขในการอัพเดท
+                'PO_H',                                     // table: ชื่อตาราง
+                'Doc_Status',                               // field: ชื่อฟิลด์
+                4,                                          // status: สถานะที่ต้องการอัพเดท
+                `WHERE Doc_Id = '${formMasterList.docId}'`  // where: เงื่อนไขในการอัพเดท
+            );
+            await updateStatusByNo(
+                'PO_H',                                     // table: ชื่อตาราง
+                'Doc_Status_Receive',                       // field: ชื่อฟิลด์
+                3,                                          // status: สถานะที่ต้องการอัพเดท
+                `WHERE Doc_Id = '${formMasterList.docId}'`  // where: เงื่อนไขในการอัพเดท
             );
 
             callInitialize();

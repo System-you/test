@@ -25,7 +25,7 @@ const FormAction = ({ onSubmit, onUpdate, onCancel, onRecover, onClosePo, docSta
             case 'update':
                 return 'แก้ไขข้อมูล';
             case 'recover':
-                return 'กู้สถานะคืน';
+                return 'ยกเลิกปิดงาน PO';
             case 'cancel':
                 return 'ยกเลิกข้อมูล';
             case 'closePo':
@@ -43,11 +43,11 @@ const FormAction = ({ onSubmit, onUpdate, onCancel, onRecover, onClosePo, docSta
                         onClick={() => handleShowModal('closePo')}
                         type="button"
                         hidden={mode === 'I' || docStatus !== 2}
-                        className="btn btn-lg w-25 shadow text-white"
+                        className="btn btn-lg w-30 shadow text-white"
                         style={{ marginLeft: '20px', backgroundColor: 'red', fontSize: '16px' }}
                         disabled={docStatus !== 2}
                     >
-                        ปิด PO
+                        ปิดงานใบ PO
                     </button>
                 </div>
                 <div className="col-6 text-end">
@@ -66,10 +66,10 @@ const FormAction = ({ onSubmit, onUpdate, onCancel, onRecover, onClosePo, docSta
                         type="button"
                         hidden={mode === 'I' || docStatus !== 4}
                         className="btn btn-lg w-25 shadow text-white"
-                        style={{ backgroundColor: 'blue', fontSize: '16px' }}
+                        style={{ backgroundColor: 'green', fontSize: '16px' }}
                         disabled={docStatus !== 4}
                     >
-                        กู้สถานะคืน
+                        ยกเลิกปิดงาน PO
                     </button>
                     <button
                         onClick={() => handleShowModal('update')}
@@ -95,7 +95,7 @@ const FormAction = ({ onSubmit, onUpdate, onCancel, onRecover, onClosePo, docSta
                         onClick={() => window.location.reload()}
                         type="button"
                         className="btn btn-lg w-25 shadow text-white"
-                        style={{ marginLeft: '20px', backgroundColor: 'skyblue', fontSize: '16px' }}
+                        style={{ marginLeft: '20px', backgroundColor: 'black', fontSize: '16px' }}
                     >
                         กลับหน้าค้นหา
                     </button>

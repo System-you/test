@@ -1,20 +1,21 @@
 import moment from 'moment';
 
 import {
-    formatDate,
+    formatThaiDateUi,
     getCreateDateTime
 } from '../../utils/SamuiUtils';
 
 export const payMasterModel = () => {
     return {
         // สำหรับตารางจ่าย
-        datePay: formatDate(moment()),
+        datePay: formatThaiDateUi(moment()),
         amountPay: 0,
 
         // ข้อมูลทั่วไป
+        payId: null,
         payNo: null,
-        docDate: formatDate(moment()),
-        docDueDate: formatDate(moment()),
+        payDate: formatThaiDateUi(moment()),
+        docDueDate: formatThaiDateUi(moment()),
         payStatus: null,
         payType: 1,
         refDocID: null,

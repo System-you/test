@@ -27,14 +27,13 @@ import {
     getAlert,
     formatCurrency,
     parseCurrency,
+    formatStringDateToDate,
+    formatDateOnChange,
     formatDateTime,
-    formatThaiDate,
     formatThaiDateUi,
-    formatThaiDateToDate,
     formatThaiDateUiToDate,
     getMaxPayNo,
-    getCreateDateTime,
-    setCreateDateTime
+    getCreateDateTime
 } from '../../../../utils/SamuiUtils';
 
 function Form({ callInitialize, mode, name, maxDocNo }) {
@@ -193,7 +192,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
     //                 apZipcode: firstItem.AP_Zipcode,
     //                 apTaxNo: firstItem.AP_TaxNo,
     //                 createdByName: firstItem.Created_By_Name,
-    //                 createdDate: setCreateDateTime(new Date(firstItem.Created_Date)),
+    //                 createdDate: getCreateDateTime(),
     //                 updateDate: firstItem.Update_Date,
     //                 updateByName: firstItem.Update_By_Name
     //             });
@@ -219,6 +218,18 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
             const maxPay = getMaxPayNo(findMaxPayNo);
             let newMaxPay = maxPay;
 
+            // ตรวจสอบค่า formMasterList.apID และ formMasterList.apCode
+            if (!formMasterList[0].apID && !formMasterList[0].apCode) {
+                getAlert("FAILED", "ไม่สามารถบันทึกได้เนื่องจากไม่พบผู้ขาย");
+                return; // หยุดการทำงานของฟังก์ชันหากไม่มีค่า apID หรือ apCode
+            }
+
+            // ตรวจสอบว่า formDetailList มีค่าหรือมีความยาวเป็น 0
+            if (!formDetailList || formDetailList.length === 0) {
+                getAlert("FAILED", "ไม่สามารถบันทึกได้เนื่องจากไม่พบรายละเอียดสินค้า");
+                return; // หยุดการทำงานของฟังก์ชันหาก formDetailList ไม่มีค่า
+            }
+
             // ข้อมูลหลักที่จะส่งไปยัง API
             const requests = formMasterList.map((formMasterData, index) => {
                 // เพิ่ม index เข้าไปใน newMaxPay
@@ -227,8 +238,8 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                 // เตรียมข้อมูลที่จะส่งไปยัง API สำหรับแต่ละรายการ
                 const formData = {
                     pay_no: incrementedPayNo,
-                    pay_date: formatThaiDateToDate(formMasterData.docDate),
-                    doc_due_date: formatThaiDateToDate(formMasterData.docDueDate),
+                    pay_date: formatStringDateToDate(formMasterData.payDate),
+                    doc_due_date: formatStringDateToDate(formMasterData.docDueDate),
                     pay_status: parseInt("1", 10),
                     pay_type: docRefType === '1' ? parseInt("1", 10) : parseInt("2", 10),
                     ref_doc_id: formMasterData.refDocID,
@@ -251,12 +262,12 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                     discount_transport_type: formMasterData.discountTransportType,
                     is_vat: isVatChecked ? parseInt("1", 10) : parseInt("2", 10),
                     doc_seq: formatDateTime(new Date()),
-                    credit_term: parseInt(formMasterData.creditTerm, 10),
+                    credit_term: parseInt("0", 10),
                     credit_term_1_day: parseInt("0", 10),
                     credit_term_1_remark: formMasterData.creditTerm1Remark,
                     credit_term_2_remark: formMasterData.creditTerm2Remark,
-                    acc_code: "0000",
-                    emp_name: formMasterData.empName,
+                    acc_code: parseInt("0000", 10),
+                    emp_name: null,
                     created_date: formatThaiDateUiToDate(formMasterData.createdDate),
                     created_by_name: window.localStorage.getItem('name'),
                     created_by_id: "1",
@@ -288,7 +299,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
             // ตรวจสอบสถานะการตอบกลับ
             const successfulResponses = responses.filter(response => response.data.status === 'OK');
 
-            // Use forEach instead of for...of to maintain index scope
+            // ใช้สำหรับ For Loop Item Detail ทั้งหมดใน FormDetailList แต่มีเงื่อนไขว่า ต้องบันทึกใบ PO สำเร็จทุกรายการ
             await Promise.all(successfulResponses.map(async (response, index) => {
                 const incrementedPayNo = incrementPayNoWithIndex(newMaxPay, index);
                 const getPayIdResponse = await Axios.post(`${process.env.REACT_APP_API_URL}/api/get-by-pay-no`, {
@@ -365,13 +376,11 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
         // ตรวจสอบว่า value เป็น moment object หรือไม่
         const newValue = value && value instanceof moment ? value.format('YYYY-MM-DD') : value;
 
-        // อัปเดตทุกรายการใน formMasterList
-        setFormMasterList(prevState =>
-            prevState.map(item => ({
-                ...item,
-                [name]: newValue
-            }))
-        );
+        // อัปเดตค่าใน formMasterList
+        setFormMasterList((prev) => ({
+            ...prev,
+            [name]: formatDateOnChange(newValue),
+        }));
     };
 
     // ฟังก์ชันสำหรับจัดการการเปลี่ยนแปลงใน formDetailList
@@ -442,7 +451,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
 
         // อัปเดตค่าใน formMasterList
         const updatedList = [...formMasterList];
-        updatedList[index][name] = newValue;
+        updatedList[index][name] = formatDateOnChange(newValue);
         setFormMasterList(updatedList);
     };
 
@@ -451,11 +460,13 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
         // รีเซ็ตฟอร์ม
         setFormMasterList(prevState => ([{
             ...prevState[0],
+            payId: null,
+            payNo: null,
+            payDate: formatThaiDateUi(moment()),
             refDocID: null,
             refDoc: null,
             refDocDate: null,
-            docDate: null,
-            docDueDate: null,
+            docDueDate: formatThaiDateUi(moment()),
             docRemark1: null,
             docRemark2: null,
             docType: null,
@@ -707,8 +718,8 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                     ...item,
                     // refDocID: results[0].fromViewRecH.Rec_Id,
                     // refDocDate: formatThaiDateUi(recSelected[0].Rec_Date),
-                    docDate: formatThaiDate(results[0].fromViewRecH.Rec_Date),
-                    docDueDate: formatThaiDate(results[0].fromViewRecH.Rec_DueDate),
+                    payDate: formatThaiDateUi(moment()),
+                    docDueDate: formatThaiDateUi(moment()),
                     // docRemark1: results[0].fromViewRecH.Doc_Remark1,
                     // docRemark2: results[0].fromViewRecH.Doc_Remark2,
                     // docType: results[0].fromViewRecH.Doc_Type,
@@ -903,12 +914,12 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                         <label>วันที่เอกสาร</label>
                         <Datetime
                             className="input-spacing-input-date"
-                            name="docDate"
-                            value={formMasterList[0]?.docDate ? moment(formMasterList[0]?.docDate) : null}
-                            onChange={(date) => handleChangeDateMaster(date, 'docDate')}
+                            name="payDate"
+                            value={formMasterList[0]?.payDate || null}
+                            onChange={(date) => handleChangeDateMaster(date, 'payDate')}
                             dateFormat="DD-MM-YYYY"
                             timeFormat={false}
-                            inputProps={{ readOnly: true, disabled: false }}
+                            inputProps={{ readOnly: true, disabled: mode === 'U' }}
                         />
                     </div>
                 </div>
@@ -1178,11 +1189,11 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                         <Datetime
                             className="input-spacing-input-date"
                             name="docDueDate"
-                            value={formMasterList[0]?.docDueDate ? moment(formMasterList[0]?.docDueDate) : null}
+                            value={formMasterList[0]?.docDueDate || null}
                             onChange={(date) => handleChangeDateMaster(date, 'docDueDate')}
                             dateFormat="DD-MM-YYYY"
                             timeFormat={false}
-                            inputProps={{ readOnly: true, disabled: false }}
+                            inputProps={{ readOnly: true, disabled: mode === 'U' }}
                         />
                     </div>
                 </div>
@@ -1363,7 +1374,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                                                                                                         <input
                                                                                                             type="text"
                                                                                                             className="form-control text-center"
-                                                                                                            value={item.datePay ? moment(item.datePay).format('DD-MM-YYYY') : 'เลือกวันที่'}
+                                                                                                            value={item.datePay ? item.datePay : 'เลือกวันที่'}
                                                                                                             onClick={() => openModalDatePicker(index)}
                                                                                                         />
                                                                                                         {/* <Datetime
@@ -1441,7 +1452,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                                                                                                     <Datetime
                                                                                                         className="input-spacing-input-date"
                                                                                                         name="datePay"
-                                                                                                        value={formMasterList[selectedDateIndex]?.datePay ? moment(formMasterList[selectedDateIndex].datePay) : null}
+                                                                                                        value={formMasterList[selectedDateIndex]?.datePay || null}
                                                                                                         onChange={(date) => {
                                                                                                             handleChangeDateMasterList(selectedDateIndex, 'datePay', date);
                                                                                                             closeModalDatePicker();

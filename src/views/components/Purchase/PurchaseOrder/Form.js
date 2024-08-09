@@ -334,7 +334,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                 credit_term_1_day: parseInt("0", 10),
                 credit_term_1_remark: formMasterList.creditTerm1Remark,
                 credit_term_2_remark: formMasterList.creditTerm2Remark,
-                acc_code: "0000",
+                acc_code: formMasterList.accCode,
                 emp_name: formMasterList.empName,
                 created_date: formatThaiDateUiToDate(formMasterList.createdDate),
                 created_by_name: window.localStorage.getItem('name'),

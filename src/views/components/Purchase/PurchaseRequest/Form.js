@@ -669,7 +669,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                     itemDisType: "1",
                     itemTotal: 0,
                     itemStatus: itemSelected.Item_Status,
-                    whId: 13,
+                    whId: null,
                     whName: itemSelected.WH_Name,
                     zoneId: null,
                     ltId: null,

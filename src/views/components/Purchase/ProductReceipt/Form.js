@@ -320,10 +320,10 @@ function Form({ callInitialize, mode, name, maxRecNo }) {
                     getAlert("FAILED", `ไม่สามารถบันทึกได้เนื่องจากไม่พบราคาต่อหน่วยของสินค้า ${item.itemName}`);
                     return; // หยุดการทำงานหากราคาต่อหน่วยเป็น 0 หรือไม่มีค่า
                 }
-                // if (!item.whId || parseInt(item.whId) === 13) {
-                //     getAlert("FAILED", `ไม่สามารถบันทึกได้เนื่องจากไม่พบคลังสินค้าของสินค้า ${item.itemName}`);
-                //     return; // หยุดการทำงานหาก whId เป็น 13 หรือไม่มีค่า
-                // }
+                if (!item.whId || parseInt(item.whId) === 13) {
+                    getAlert("FAILED", `ไม่สามารถบันทึกได้เนื่องจากไม่พบคลังสินค้าของสินค้า ${item.itemName}`);
+                    return; // หยุดการทำงานหาก whId เป็น 13 หรือไม่มีค่า
+                }
             }
 
             // ข้อมูลหลักที่จะส่งไปยัง API

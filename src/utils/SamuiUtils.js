@@ -307,7 +307,7 @@ const formatThaiDateUi = (dateString) => {
     return `${date.getDate().toString().padStart(2, '0')}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${year}`;
 };
 
-// ฟังก์ชันเพื่อใช้กับ handleChangeDateMaster
+// ฟังก์ชันเพื่อใช้กับ handleChangeDateMaster ผลลัพธ์ที่ Return คือ "13-08-2567"
 const formatDateOnChange = (dateString) => {
     const date = new Date(dateString);
     if (isNaN(date.getTime())) {
@@ -490,20 +490,54 @@ const incrementRecNo = (recNo) => {
 };
 
 // ฟังก์ชั่นเพิ่ม PayNo
-const getMaxPayNo = (list) => {
+// const getMaxPayNo = (list) => {
+//     const { currentYear, currentMonth } = getCurrentYearMonth();
+
+//     if (!list || list.length < 1) { // ตรวจสอบกรณี list เป็น undefined, null, หรือไม่มีข้อมูล
+//         return `PAY${currentYear}${currentMonth}0001`;
+//     }
+
+//     const maxPay = list.reduce((max, item) => {
+//         return item.Pay_No > max ? item.Pay_No : max;
+//     }, list[0].Pay_No);
+
+//     // เช็คปีและเดือนใน PayNo ล่าสุด
+//     if (maxPay.slice(3, 5) !== currentYear || maxPay.slice(5, 7) !== currentMonth) {
+//         return `PAY${currentYear}${currentMonth}0001`;
+//     }
+
+//     return incrementPayNo(maxPay);
+// };
+const getMaxPayNo = (list, givenDate) => {
     const { currentYear, currentMonth } = getCurrentYearMonth();
 
-    if (!list || list.length < 1) { // ตรวจสอบกรณี list เป็น undefined, null, หรือไม่มีข้อมูล
-        return `PAY${currentYear}${currentMonth}0001`;
+    // แปลงวันที่จากรูปแบบ "13-09-2567" เป็นปีและเดือน
+    let year, month;
+    if (givenDate) {
+        const [day, monthStr, yearStr] = givenDate.split("-");
+        year = yearStr.slice(-2); // ดึงสองหลักสุดท้ายของปี พ.ศ.
+        month = monthStr; // เดือน
+    } else {
+        year = currentYear;
+        month = currentMonth;
     }
 
+    // เช็คว่ามีข้อมูล Pay_No หรือไม่
+    if (!list || list.length < 1) {
+        return `PAY${year}${month}0001`;
+    }
+
+    // หาค่าสูงสุดของ Pay_No
     const maxPay = list.reduce((max, item) => {
         return item.Pay_No > max ? item.Pay_No : max;
     }, list[0].Pay_No);
 
-    // เช็คปีและเดือนใน PayNo ล่าสุด
-    if (maxPay.slice(3, 5) !== currentYear || maxPay.slice(5, 7) !== currentMonth) {
-        return `PAY${currentYear}${currentMonth}0001`;
+    // เช็คปีและเดือนใน Pay_No ล่าสุด
+    const maxPayYear = maxPay.slice(3, 5);
+    const maxPayMonth = maxPay.slice(5, 7);
+
+    if (maxPayYear !== year || maxPayMonth !== month) {
+        return `PAY${year}${month}0001`;
     }
 
     return incrementPayNo(maxPay);

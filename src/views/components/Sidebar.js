@@ -28,20 +28,20 @@ function Sidebar() {
       if (response.data.status === 'OK') {
         setAuthData(response.data.decoded);
       } else {
-        getAlert('FAILED', "Token ไม่ถูกต้องหรือหมดอายุแล้ว กรุณาล็อกอินใหม่อีกครั้ง");
+        getAlert('FAILED', "Session Timeout \n กรุณาล็อกอินใหม่อีกครั้ง");
 
-        // เพิ่ม Delay 2 วินาที ก่อนที่จะเปลี่ยนเส้นทาง
+        // เพิ่ม Delay 3 วินาที ก่อนที่จะเปลี่ยนเส้นทาง
         setTimeout(() => {
           window.location.replace('/login');
-        }, 2000);
+        }, 3000);
       }
     } catch (error) {
       getAlert('FAILED', error.message);
 
-      // เพิ่ม Delay 2 วินาที ก่อนที่จะเปลี่ยนเส้นทาง
+      // เพิ่ม Delay 3 วินาที ก่อนที่จะเปลี่ยนเส้นทาง
       setTimeout(() => {
         window.location.replace('/login');
-      }, 2000);
+      }, 3000);
     }
   };
 

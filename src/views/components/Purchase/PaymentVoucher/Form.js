@@ -213,11 +213,6 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
 
     const handleSubmit = async () => {
         try {
-            // หาค่าสูงของ PayNo ใน PAY_H ก่อนบันทึก
-            const findMaxPayNo = await getAllData('PAY_H', 'ORDER BY Pay_No DESC');
-            const maxPay = getMaxPayNo(findMaxPayNo);
-            let newMaxPay = maxPay;
-
             // ตรวจสอบค่า formMasterList.apID และ formMasterList.apCode
             if (!formMasterList[0].apID && !formMasterList[0].apCode) {
                 getAlert("FAILED", "ไม่สามารถบันทึกได้เนื่องจากไม่พบผู้ขาย");
@@ -230,125 +225,262 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                 return; // หยุดการทำงานของฟังก์ชันหาก formDetailList ไม่มีค่า
             }
 
-            // ข้อมูลหลักที่จะส่งไปยัง API
-            const requests = formMasterList.map((formMasterData, index) => {
-                // เพิ่ม index เข้าไปใน newMaxPay
-                const incrementedPayNo = incrementPayNoWithIndex(newMaxPay, index);
+            // หาค่าสูงสุดของ PayNo ใน PAY_H ก่อนบันทึก
+            let dateString = formMasterList[0].datePay;
+            let givenDate = "PAY" + dateString.substring(6, 10).substring(2) + dateString.substring(3, 5);
+            const findMaxPayNo = await getAllData('PAY_H', `AND Pay_No LIKE '${givenDate}%' ORDER BY Pay_No DESC`);
+            const maxPay = getMaxPayNo(findMaxPayNo, dateString);
+            let newMaxPay = maxPay;
 
-                // เตรียมข้อมูลที่จะส่งไปยัง API สำหรับแต่ละรายการ
-                const formData = {
-                    pay_no: incrementedPayNo,
-                    pay_date: formatStringDateToDate(formMasterData.payDate),
-                    doc_due_date: formatStringDateToDate(formMasterData.docDueDate),
-                    pay_status: parseInt("1", 10),
-                    pay_type: docRefType === '1' ? parseInt("1", 10) : parseInt("2", 10),
-                    ref_doc_id: formMasterData.refDocID,
-                    ref_doc: formMasterData.refDoc,
-                    ref_doc_date: formatThaiDateUiToDate(formMasterData.refDocDate),
-                    comp_id: window.localStorage.getItem('company'),
-                    ref_project_id: formMasterData.refProjectID,
-                    ref_project_no: formMasterData.refProjectNo,
-                    transport_type: formMasterData.transportType,
-                    doc_remark1: formMasterData.docRemark1,
-                    doc_remark2: formMasterData.docRemark2,
-                    ap_id: parseInt(formMasterData.apID, 10),
-                    ap_code: formMasterData.apCode,
-                    action_hold: parseInt("0", 10),
-                    discount_value: parseFloat(formMasterData.discountValue || 0.00),
-                    discount_value_type: parseInt(selectedDiscountValueType, 10),
-                    discount_cash: parseFloat("0.00"),
-                    discount_cash_type: formMasterData.discountCashType,
-                    discount_transport: parseFloat("0.00"),
-                    discount_transport_type: formMasterData.discountTransportType,
-                    is_vat: isVatChecked ? parseInt("1", 10) : parseInt("2", 10),
-                    doc_seq: formatDateTime(new Date()),
-                    credit_term: parseInt("0", 10),
-                    credit_term_1_day: parseInt("0", 10),
-                    credit_term_1_remark: formMasterData.creditTerm1Remark,
-                    credit_term_2_remark: formMasterData.creditTerm2Remark,
-                    acc_code: parseInt("0000", 10),
-                    emp_name: null,
-                    created_date: formatThaiDateUiToDate(formMasterData.createdDate),
-                    created_by_name: window.localStorage.getItem('name'),
-                    created_by_id: "1",
-                    update_date: formMasterData.updateDate,
-                    update_by_name: formMasterData.updateByName,
-                    update_by_id: formMasterData.updateById,
-                    approved_date: formMasterData.approvedDate,
-                    approved_by_name: formMasterData.approvedByName,
-                    approved_by_id: formMasterData.approvedById,
-                    cancel_date: formMasterData.cancelDate,
-                    cancel_by_name: formMasterData.cancelByName,
-                    cancel_by_id: formMasterData.cancelById,
-                    approved_memo: formMasterData.approvedMemo,
-                    printed_status: "N",
-                    printed_date: formMasterData.printedDate,
-                    printed_by: formMasterData.printedBy,
-                    cancel_memo: formMasterData.cancelMemo
-                };
+            // เก็บข้อมูลสำหรับใบแรกไว้เสมอ เช่น Ref_DocID, Ref_Doc, Ref_DocDate
+            const incrementedPayNo = incrementPayNoWithIndex(newMaxPay, 0);
+            let refDocID = null;
+            let refDoc = incrementedPayNo;
+            let refDocDate = formMasterList[0].payDate || null;
 
-                // ส่งข้อมูลไปยัง API
-                return Axios.post(`${process.env.REACT_APP_API_URL}/api/create-pay-h`, formData, {
-                    headers: { key: process.env.REACT_APP_ANALYTICS_KEY }
-                });
+            // บันทึก formMasterList[0] ก่อน
+            const formData = {
+                pay_no: incrementedPayNo,
+                pay_date: formatStringDateToDate(formMasterList[0].payDate),
+                doc_due_date: formatStringDateToDate(formMasterList[0].docDueDate),
+                pay_status: parseInt("1", 10),
+                pay_type: null,
+                ref_doc_id: null,
+                ref_doc: null,
+                ref_doc_date: null,
+                comp_id: window.localStorage.getItem('company'),
+                ref_project_id: formMasterList[0].refProjectID,
+                ref_project_no: formMasterList[0].refProjectNo,
+                transport_type: formMasterList[0].transportType,
+                doc_remark1: formMasterList[0].docRemark1,
+                doc_remark2: formMasterList[0].docRemark2,
+                ap_id: parseInt(formMasterList[0].apID, 10),
+                ap_code: formMasterList[0].apCode,
+                action_hold: parseInt("0", 10),
+                discount_value: parseFloat(formMasterList[0].discountValue || 0.00),
+                discount_value_type: parseInt(selectedDiscountValueType, 10),
+                discount_cash: parseFloat("0.00"),
+                discount_cash_type: formMasterList[0].discountCashType,
+                discount_transport: parseFloat("0.00"),
+                discount_transport_type: formMasterList[0].discountTransportType,
+                is_vat: isVatChecked ? parseInt("1", 10) : parseInt("2", 10),
+                doc_seq: formatDateTime(new Date()),
+                credit_term: parseInt("0", 10),
+                credit_term_1_day: parseInt("0", 10),
+                credit_term_1_remark: formMasterList[0].creditTerm1Remark,
+                credit_term_2_remark: formMasterList[0].creditTerm2Remark,
+                acc_code: parseInt("0000", 10),
+                emp_name: null,
+                created_date: formatThaiDateUiToDate(formMasterList[0].createdDate),
+                created_by_name: window.localStorage.getItem('name'),
+                created_by_id: "1",
+                update_date: formMasterList[0].updateDate,
+                update_by_name: formMasterList[0].updateByName,
+                update_by_id: formMasterList[0].updateById,
+                approved_date: formMasterList[0].approvedDate,
+                approved_by_name: formMasterList[0].approvedByName,
+                approved_by_id: formMasterList[0].approvedById,
+                cancel_date: formMasterList[0].cancelDate,
+                cancel_by_name: formMasterList[0].cancelByName,
+                cancel_by_id: formMasterList[0].cancelById,
+                approved_memo: formMasterList[0].approvedMemo,
+                printed_status: "N",
+                printed_date: formMasterList[0].printedDate,
+                printed_by: formMasterList[0].printedBy,
+                cancel_memo: formMasterList[0].cancelMemo,
+                total_pay_per: parseCurrency(formMasterList[0].amountPay)
+            };
+
+            const firstResponse = await Axios.post(`${process.env.REACT_APP_API_URL}/api/create-pay-h`, formData, {
+                headers: { key: process.env.REACT_APP_ANALYTICS_KEY }
             });
 
-            // ใช้ Promise.all เพื่อรอให้ทุกคำขอเสร็จสมบูรณ์
-            const responses = await Promise.all(requests);
+            if (firstResponse.data.status !== 'OK') {
+                getAlert("FAILED", "ไม่สามารถบันทึกข้อมูลรายการแรกได้");
+                return;
+            }
 
-            // ตรวจสอบสถานะการตอบกลับ
-            const successfulResponses = responses.filter(response => response.data.status === 'OK');
+            // Fetch ข้อมูลสำหรับ Ref_DocID
+            const getPayIdResponse = await Axios.post(`${process.env.REACT_APP_API_URL}/api/get-by-pay-no`, {
+                table: 'PAY_H',
+                pay_no: incrementedPayNo
+            }, {
+                headers: { key: process.env.REACT_APP_ANALYTICS_KEY }
+            });
 
-            // ใช้สำหรับ For Loop Item Detail ทั้งหมดใน FormDetailList แต่มีเงื่อนไขว่า ต้องบันทึกใบ PO สำเร็จทุกรายการ
-            await Promise.all(successfulResponses.map(async (response, index) => {
-                const incrementedPayNo = incrementPayNoWithIndex(newMaxPay, index);
-                const getPayIdResponse = await Axios.post(`${process.env.REACT_APP_API_URL}/api/get-by-pay-no`, {
-                    table: 'PAY_H',
-                    pay_no: incrementedPayNo
-                }, {
-                    headers: { key: process.env.REACT_APP_ANALYTICS_KEY }
-                });
+            // เก็บ Pay_Id ของใบแรกเอาไว้ใน refDocID และทำการบันทึก Detail ของใบแรกไปก่อน
+            if (getPayIdResponse && getPayIdResponse.data.length > 0) {
+                refDocID = getPayIdResponse.data[0].Pay_Id;
 
-                if (getPayIdResponse && getPayIdResponse.data.length > 0) {
-                    const payId = parseInt(getPayIdResponse.data[0].Pay_Id, 10);
+                const detailPromises = formDetailList.map((item) => {
+                    let payId = parseInt(getPayIdResponse.data[0].Pay_Id, 10);
                     let detailIndex = 1;
 
-                    const detailPromises = formDetailList.map((item) => {
-                        const formDetailData = {
-                            pay_id: payId,
-                            rec_dt_id: null,
-                            rec_id: null,
-                            line: detailIndex,
-                            item_id: item.itemId,
-                            item_code: item.itemCode,
-                            item_name: item.itemName,
-                            item_qty: item.itemQty,
-                            item_unit: item.itemUnit,
-                            item_price_unit: item.itemPriceUnit,
-                            item_discount: item.itemDiscount,
-                            item_distype: item.itemDisType === '1' ? 1 : 2,
-                            item_total: parseCurrency(item.itemTotal),
-                            item_status: item.itemStatus,
-                            wh_id: parseInt(item.whId, 10),
-                            zone_id: 1,
-                            lt_id: 1,
-                            ds_seq: formatDateTime(new Date())
-                        };
-                        detailIndex++;
+                    const formDetailData = {
+                        pay_id: payId,
+                        rec_dt_id: null,
+                        rec_id: null,
+                        line: detailIndex,
+                        item_id: item.itemId,
+                        item_code: item.itemCode,
+                        item_name: item.itemName,
+                        item_qty: item.itemQty,
+                        item_unit: item.itemUnit,
+                        item_price_unit: parseCurrency(item.itemPriceUnit),
+                        item_discount: parseCurrency(item.itemDiscount),
+                        item_distype: item.itemDisType === '1' ? parseInt("1", 10) : parseInt("2", 10),
+                        item_total: parseCurrency(item.itemTotal),
+                        item_status: item.itemStatus,
+                        wh_id: parseInt(item.whId, 10),
+                        zone_id: parseInt("1", 10),
+                        lt_id: parseInt("1", 10),
+                        ds_seq: formatDateTime(new Date())
+                    };
 
-                        return Axios.post(`${process.env.REACT_APP_API_URL}/api/create-pay-d`, formDetailData, {
-                            headers: { key: process.env.REACT_APP_ANALYTICS_KEY }
-                        });
+                    detailIndex++;
+
+                    return Axios.post(`${process.env.REACT_APP_API_URL}/api/create-pay-d`, formDetailData, {
+                        headers: { key: process.env.REACT_APP_ANALYTICS_KEY }
+                    });
+                });
+
+                await Promise.all(detailPromises);
+            } else {
+                console.error('ไม่สามารถรับข้อมูล Pay_Id ได้');
+                return;
+            }
+
+            // *********************************************************************************************
+            // ถ้า formMasterList มีมากกว่า 1 ข้อมูล และให้เริ่มต้นบันทึกแต่ข้อมูลที่ [1] เป็นต้นไป
+            if (formMasterList.length > 1) {
+                for (let i = 1; i < formMasterList.length; i++) {
+                    // บันทึก Master
+                    let formMasterData = formMasterList[i];
+
+                    // บันทึกข้อมูลของ formMasterData ที่ index i
+                    //let incrementedPayNo = incrementPayNoWithIndex(newMaxPay, i);
+
+                    // หาค่าสูงสุดของ PayNo ใน PAY_H ก่อนบันทึก
+                    let dateString = formMasterList[i].datePay;
+                    console.debug(dateString);
+                    let givenDate = "PAY" + dateString.substring(6, 10).substring(2) + dateString.substring(3, 5);
+                    const findMaxPayNo = await getAllData('PAY_H', `AND Pay_No LIKE '${givenDate}%' ORDER BY Pay_No DESC`);
+                    const maxPay = getMaxPayNo(findMaxPayNo, dateString);
+                    let incrementedPayNo = maxPay;
+
+                    // บันทึกรายการที่เหลือใน formMasterList
+                    let formData = {
+                        pay_no: incrementedPayNo,
+                        pay_date: formatStringDateToDate(formMasterData.payDate),
+                        doc_due_date: formatStringDateToDate(formMasterData.docDueDate),
+                        pay_status: parseInt("1", 10),
+                        pay_type: null,
+                        ref_doc_id: refDocID,
+                        ref_doc: refDoc,
+                        ref_doc_date: formatThaiDateUiToDate(refDocDate),
+                        comp_id: window.localStorage.getItem('company'),
+                        ref_project_id: formMasterData.refProjectID,
+                        ref_project_no: formMasterData.refProjectNo,
+                        transport_type: formMasterData.transportType,
+                        doc_remark1: formMasterData.docRemark1,
+                        doc_remark2: formMasterData.docRemark2,
+                        ap_id: parseInt(formMasterData.apID, 10),
+                        ap_code: formMasterData.apCode,
+                        action_hold: parseInt("0", 10),
+                        discount_value: parseFloat(formMasterData.discountValue || 0.00),
+                        discount_value_type: parseInt(selectedDiscountValueType, 10),
+                        discount_cash: parseFloat("0.00"),
+                        discount_cash_type: formMasterData.discountCashType,
+                        discount_transport: parseFloat("0.00"),
+                        discount_transport_type: formMasterData.discountTransportType,
+                        is_vat: isVatChecked ? parseInt("1", 10) : parseInt("2", 10),
+                        doc_seq: formatDateTime(new Date()),
+                        credit_term: parseInt("0", 10),
+                        credit_term_1_day: parseInt("0", 10),
+                        credit_term_1_remark: formMasterData.creditTerm1Remark,
+                        credit_term_2_remark: formMasterData.creditTerm2Remark,
+                        acc_code: parseInt("0000", 10),
+                        emp_name: null,
+                        created_date: formatThaiDateUiToDate(formMasterData.createdDate),
+                        created_by_name: window.localStorage.getItem('name'),
+                        created_by_id: "1",
+                        update_date: formMasterData.updateDate,
+                        update_by_name: formMasterData.updateByName,
+                        update_by_id: formMasterData.updateById,
+                        approved_date: formMasterData.approvedDate,
+                        approved_by_name: formMasterData.approvedByName,
+                        approved_by_id: formMasterData.approvedById,
+                        cancel_date: formMasterData.cancelDate,
+                        cancel_by_name: formMasterData.cancelByName,
+                        cancel_by_id: formMasterData.cancelById,
+                        approved_memo: formMasterData.approvedMemo,
+                        printed_status: "N",
+                        printed_date: formMasterData.printedDate,
+                        printed_by: formMasterData.printedBy,
+                        cancel_memo: formMasterData.cancelMemo,
+                        total_pay_per: parseCurrency(formMasterData.amountPay)
+                    };
+
+                    let additionalResponse = await Axios.post(`${process.env.REACT_APP_API_URL}/api/create-pay-h`, formData, {
+                        headers: { key: process.env.REACT_APP_ANALYTICS_KEY }
                     });
 
-                    await Promise.all(detailPromises);
-                }
-            }));
+                    if (additionalResponse.data.status !== 'OK') {
+                        getAlert("FAILED", "ไม่สามารถบันทึกรายการที่เหลือได้");
+                        return;
+                    }
 
+                    let getPayIdResponse = await Axios.post(`${process.env.REACT_APP_API_URL}/api/get-by-pay-no`, {
+                        table: 'PAY_H',
+                        pay_no: incrementedPayNo
+                    }, {
+                        headers: { key: process.env.REACT_APP_ANALYTICS_KEY }
+                    });
+
+                    if (getPayIdResponse && getPayIdResponse.data.length > 0) {
+                        let detailPromises = formDetailList.map((item) => {
+                            let payId = parseInt(getPayIdResponse.data[0].Pay_Id, 10);
+                            let detailIndex = 1;
+
+                            let formDetailData = {
+                                pay_id: payId,
+                                rec_dt_id: null,
+                                rec_id: null,
+                                line: detailIndex,
+                                item_id: item.itemId,
+                                item_code: item.itemCode,
+                                item_name: item.itemName,
+                                item_qty: item.itemQty,
+                                item_unit: item.itemUnit,
+                                item_price_unit: parseCurrency(item.itemPriceUnit),
+                                item_discount: parseCurrency(item.itemDiscount),
+                                item_distype: item.itemDisType === '1' ? parseInt("1", 10) : parseInt("2", 10),
+                                item_total: parseCurrency(item.itemTotal),
+                                item_status: item.itemStatus,
+                                wh_id: parseInt(item.whId, 10),
+                                zone_id: parseInt("1", 10),
+                                lt_id: parseInt("1", 10),
+                                ds_seq: formatDateTime(new Date())
+                            };
+
+                            detailIndex++;
+
+                            return Axios.post(`${process.env.REACT_APP_API_URL}/api/create-pay-d`, formDetailData, {
+                                headers: { key: process.env.REACT_APP_ANALYTICS_KEY }
+                            });
+                        });
+
+                        await Promise.all(detailPromises);
+                    }
+                }
+            }
+
+            // จบกระบวนการทุกอย่างแบบสมบูรณ์
             callInitialize();
             getAlert('OK', 'บันทึกข้อมูลสำเร็จ');
         } catch (error) {
-            getAlert('FAILED', error.response?.data?.message || error.message);
+            console.error('เกิดข้อผิดพลาด:', error);
+            getAlert("FAILED", "เกิดข้อผิดพลาดในการบันทึกข้อมูล");
         }
     };
 
@@ -357,30 +489,6 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
         const prefix = payNo.slice(0, 7); // รวมปีและเดือนใน prefix
         const numPart = parseInt(payNo.slice(7)) + index;
         return prefix + numPart.toString().padStart(4, '0');
-    };
-
-    // ฟังก์ชันสำหรับจัดการการเปลี่ยนแปลงใน formMasterList
-    const handleChangeMaster = (event) => {
-        const { name, value } = event.target;
-
-        // อัปเดตทุกรายการใน formMasterList
-        setFormMasterList(prevState =>
-            prevState.map(item => ({
-                ...item,
-                [name]: value
-            }))
-        );
-    };
-
-    const handleChangeDateMaster = (value, name) => {
-        // ตรวจสอบว่า value เป็น moment object หรือไม่
-        const newValue = value && value instanceof moment ? value.format('YYYY-MM-DD') : value;
-
-        // อัปเดตค่าใน formMasterList
-        setFormMasterList((prev) => ({
-            ...prev,
-            [name]: formatDateOnChange(newValue),
-        }));
     };
 
     // ฟังก์ชันสำหรับจัดการการเปลี่ยนแปลงใน formDetailList
@@ -414,7 +522,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
         setFormDetailList(updatedList);
     };
 
-    const handleFocus = (index, field) => {
+    const handleFocusMaster = (index, field) => {
         const updatedList = [...formMasterList];
         // กำหนดค่าเริ่มต้นถ้า field เป็น undefined
         const value = updatedList[index][field] || 0;
@@ -422,13 +530,30 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
         setFormMasterList(updatedList);
     };
 
-    const handleBlur = (index, field, value) => {
+    const handleBlurMaster = (index, field, value) => {
         const numericValue = Number(value.replace(/,/g, '')) || 0;
         const formattedValue = formatCurrency(numericValue);
 
         const updatedList = [...formMasterList];
         updatedList[index][field] = formattedValue;
         setFormMasterList(updatedList);
+    };
+
+    const handleFocusDetail = (index, field) => {
+        const updatedList = [...formDetailList];
+        // กำหนดค่าเริ่มต้นถ้า field เป็น undefined
+        const value = updatedList[index][field] || 0;
+        updatedList[index][field] = Number(value.toString().replace(/,/g, ''));
+        setFormDetailList(updatedList);
+    };
+
+    const handleBlurDetail = (index, field, value) => {
+        const numericValue = Number(value.replace(/,/g, '')) || 0;
+        const formattedValue = formatCurrency(numericValue);
+
+        const updatedList = [...formDetailList];
+        updatedList[index][field] = formattedValue;
+        setFormDetailList(updatedList);
     };
 
     // ฟังก์ชันสำหรับจัดการการเปลี่ยนแปลงใน formMasterList (action สำหรับตาราง)
@@ -445,7 +570,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
         setFormMasterList(updatedList);
     };
 
-    const handleChangeDateMasterList = (index, name, value) => {
+    const handleChangeDateMasterList = (value, name, index) => {
         // ตรวจสอบว่า value เป็น moment object หรือไม่
         const newValue = value && value instanceof moment ? value.format('YYYY-MM-DD') : value;
 
@@ -457,35 +582,6 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
 
     // ฟังก์ชันสำหรับจัดการการเปลี่ยนแปลงของเอกสารอ้างอิง
     const handleChangePayType = (value) => {
-        // รีเซ็ตฟอร์ม
-        setFormMasterList(prevState => ([{
-            ...prevState[0],
-            payId: null,
-            payNo: null,
-            payDate: formatThaiDateUi(moment()),
-            refDocID: null,
-            refDoc: null,
-            refDocDate: null,
-            docDueDate: formatThaiDateUi(moment()),
-            docRemark1: null,
-            docRemark2: null,
-            docType: null,
-            docFor: null,
-            transportType: null,
-            discountValue: null,
-            creditTerm: null,
-            apID: null,
-            apCode: null,
-            apName: null,
-            apAdd1: null,
-            apAdd2: null,
-            apAdd3: null,
-            apProvince: null,
-            apZipcode: null,
-            apTaxNo: null
-        }]));
-
-        // ใช้ฟังก์ชัน payMasterModel และตรวจสอบให้แน่ใจว่าเป็นอาร์เรย์
         const newPayMasterModel = [payMasterModel()];
         setFormMasterList(newPayMasterModel);
         setFormDetailList([]);
@@ -774,22 +870,29 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
     const handleApClose = () => setShowApModal(false);
     const onRowSelectAp = (apSelected) => {
         try {
-            setFormMasterList(prevState => {
-                // เช็คว่ามีข้อมูลใน array หรือไม่
-                const updatedList = [...prevState];
-                updatedList[0] = {
-                    apID: apSelected.AP_Id,
-                    apCode: apSelected.AP_Code,
-                    apName: apSelected.AP_Name,
-                    apAdd1: apSelected.AP_Add1,
-                    apAdd2: apSelected.AP_Add2,
-                    apAdd3: apSelected.AP_Add3,
-                    apProvince: apSelected.AP_Province,
-                    apZipcode: apSelected.AP_Zipcode,
-                    apTaxNo: apSelected.AP_TaxNo
-                };
-                return updatedList;
-            });
+            // เก็บค่าของ formMasterList ที่มีอยู่เดิม
+            const currentList = formMasterList[0] ? formMasterList[0] : payMasterModel();
+
+            // เก็บค่า ap ข้อมูลไว้ก่อน
+            const apData = {
+                apID: apSelected.AP_Id,
+                apCode: apSelected.AP_Code,
+                apName: apSelected.AP_Name,
+                apAdd1: apSelected.AP_Add1,
+                apAdd2: apSelected.AP_Add2,
+                apAdd3: apSelected.AP_Add3,
+                apProvince: apSelected.AP_Province,
+                apZipcode: apSelected.AP_Zipcode,
+                apTaxNo: apSelected.AP_TaxNo
+            };
+
+            // ตั้งค่าให้กับรายการเดียว โดยเก็บค่าเดิมไว้ที่ตำแหน่งที่ 0
+            setFormMasterList([{
+                ...currentList,
+                ...apData // ตั้งค่า ap ข้อมูลกลับไป
+            }]);
+
+
             handleApClose(); // ปิด modal หลังจากเลือก
         } catch (error) {
             getAlert("FAILED", error);
@@ -814,8 +917,8 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                     itemName: itemSelected.Item_Name,
                     itemQty: 0,
                     itemUnit: itemSelected.Item_Unit_ST,
-                    itemPriceUnit: itemSelected.Item_Cost,
-                    itemDiscount: 0,
+                    itemPriceUnit: formatCurrency(itemSelected.Item_Cost || 0),
+                    itemDiscount: formatCurrency(0),
                     itemDisType: '1',
                     itemTotal: 0,
                     itemStatus: itemSelected.Item_Status,
@@ -916,7 +1019,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             className="input-spacing-input-date"
                             name="payDate"
                             value={formMasterList[0]?.payDate || null}
-                            onChange={(date) => handleChangeDateMaster(date, 'payDate')}
+                            onChange={(date) => handleChangeDateMasterList(date, 'payDate', 0)}
                             dateFormat="DD-MM-YYYY"
                             timeFormat={false}
                             inputProps={{ readOnly: true, disabled: mode === 'U' }}
@@ -936,7 +1039,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                                     + " " +
                                     (formMasterList[0]?.apName || '')
                                 }
-                                onChange={handleChangeMaster}
+                                onChange={handleChangeMasterList}
                                 disabled={true}
                             />
                             <button className="btn btn-outline-secondary" onClick={handleApShow} disabled={docRefType === '1' ? true : false}>
@@ -960,7 +1063,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             className="form-control input-spacing"
                             name="createdDate"
                             value={formMasterList[0]?.createdDate}
-                            // onChange={handleChangeMaster}
+                            // onChange={handleChangeMasterList}
                             disabled={true} />
                     </div>
                 </div>
@@ -988,7 +1091,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             className="form-control input-spacing"
                             name="apAdd1"
                             value={formMasterList[0]?.apAdd1 || ''}
-                            onChange={handleChangeMaster}
+                            onChange={handleChangeMasterList}
                             disabled={true} />
                     </div>
                 </div>
@@ -1001,7 +1104,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             className="form-control input-spacing"
                             name="createdByName"
                             value={formMasterList[0]?.createdByName || ''}
-                            onChange={handleChangeMaster}
+                            onChange={handleChangeMasterList}
                             disabled={true} />
                     </div>
                 </div>
@@ -1016,7 +1119,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                                 className="form-control input-spacing"
                                 name="refDoc"
                                 value={formMasterList[0]?.refDoc || ''}
-                                onChange={handleChangeMaster}
+                                onChange={handleChangeMasterList}
                                 disabled={true}
                             />
                             <button className="btn btn-outline-secondary" onClick={handleRecShow} hidden={docRefType === '1' ? false : true}>
@@ -1055,7 +1158,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             className="form-control input-spacing"
                             name="updateDate"
                             value={formMasterList[0]?.updateDate || ''}
-                            onChange={handleChangeMaster}
+                            onChange={handleChangeMasterList}
                             disabled={true} />
                     </div>
                 </div>
@@ -1070,7 +1173,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             className="form-control input-spacing"
                             name="refDocDate"
                             value={formMasterList[0]?.refDocDate || ''}
-                            onChange={handleChangeMaster}
+                            onChange={handleChangeMasterList}
                             disabled={true}
                         />
                     </div>
@@ -1098,7 +1201,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             className="form-control input-spacing"
                             name="updateByName"
                             value={formMasterList[0]?.updateByName || ''}
-                            onChange={handleChangeMaster}
+                            onChange={handleChangeMasterList}
                             disabled={true} />
                     </div>
                 </div>
@@ -1111,7 +1214,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             className="form-select form-control input-spacing"
                             name="docType"
                             value={formMasterList[0]?.docType}
-                            onChange={handleChangeMaster}
+                            onChange={handleChangeMasterList}
                             disabled={docRefType === '1'}
                         >
                             {docRefType !== '1' && tbDocType.map((docType) => (
@@ -1143,7 +1246,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             className="form-control input-spacing"
                             name="approvedDate"
                             value={formMasterList[0]?.approvedDate || ''}
-                            onChange={handleChangeMaster}
+                            onChange={handleChangeMasterList}
                             disabled={true} />
                     </div>
                 </div>
@@ -1155,7 +1258,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                         <select
                             name="docFor"
                             value={formMasterList.docFor}
-                            onChange={handleChangeMaster}
+                            onChange={handleChangeMasterList}
                             disabled={docRefType === '1'}
                             className="form-select form-control input-spacing"
                         >
@@ -1177,7 +1280,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             className="form-control input-spacing"
                             name="approvedByName"
                             value={formMasterList[0]?.approvedByName || ''}
-                            onChange={handleChangeMaster}
+                            onChange={handleChangeMasterList}
                             disabled={true} />
                     </div>
                 </div>
@@ -1190,7 +1293,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             className="input-spacing-input-date"
                             name="docDueDate"
                             value={formMasterList[0]?.docDueDate || null}
-                            onChange={(date) => handleChangeDateMaster(date, 'docDueDate')}
+                            onChange={(date) => handleChangeDateMasterList(date, 'docDueDate', 0)}
                             dateFormat="DD-MM-YYYY"
                             timeFormat={false}
                             inputProps={{ readOnly: true, disabled: mode === 'U' }}
@@ -1206,7 +1309,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             className="form-control input-spacing"
                             name="approvedMemo"
                             value={formMasterList[0]?.approvedMemo || ''}
-                            onChange={handleChangeMaster}
+                            onChange={handleChangeMasterList}
                             disabled={true} />
                     </div>
                 </div>
@@ -1404,8 +1507,8 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                                                                                                             className="form-control text-end input-spacing"
                                                                                                             value={item.amountPay || ''}
                                                                                                             onChange={(e) => handleChangeMasterList(index, 'amountPay', e.target.value)}
-                                                                                                            onFocus={(e) => handleFocus(index, 'amountPay')}
-                                                                                                            onBlur={(e) => handleBlur(index, 'amountPay', e.target.value)}
+                                                                                                            onFocus={(e) => handleFocusMaster(index, 'amountPay')}
+                                                                                                            onBlur={(e) => handleBlurMaster(index, 'amountPay', e.target.value)}
                                                                                                         />
                                                                                                     </td>
                                                                                                     <td className="text-center">
@@ -1454,7 +1557,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                                                                                                         name="datePay"
                                                                                                         value={formMasterList[selectedDateIndex]?.datePay || null}
                                                                                                         onChange={(date) => {
-                                                                                                            handleChangeDateMasterList(selectedDateIndex, 'datePay', date);
+                                                                                                            handleChangeDateMasterList(date, 'datePay', selectedDateIndex);
                                                                                                             closeModalDatePicker();
                                                                                                         }}
                                                                                                         dateFormat="DD-MM-YYYY"
@@ -1537,17 +1640,26 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                                                     <tbody>
                                                         {formDetailList.map((item, index) => (
                                                             <tr key={item.itemId || index + 1}>
+                                                                {/* # */}
                                                                 <td className="text-center">{index + 1}</td>
+
+                                                                {/* # RecNo */}
                                                                 <td hidden={docRefType === '1' ? false : true}
                                                                     className="text-center">
                                                                     <span>{item.recNo || ''}</span>
                                                                 </td>
+
+                                                                {/* รหัสสินค้า */}
                                                                 <td className="text-center">
                                                                     <span>{item.itemCode || ''}</span>
                                                                 </td>
+
+                                                                {/* ชื่อสินค้า */}
                                                                 <td className="text-left">
                                                                     <span>{item.itemName || ''}</span>
                                                                 </td>
+
+                                                                {/* จำนวน */}
                                                                 <td className="text-center">
                                                                     {docRefType === '1' ? (
                                                                         <span>{item.itemQty || 0}</span>
@@ -1561,9 +1673,13 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                                                                         />
                                                                     )}
                                                                 </td>
+
+                                                                {/* หน่วย */}
                                                                 <td className="text-center">
                                                                     <span>{item.itemUnit || ''}</span>
                                                                 </td>
+
+                                                                {/* ราคาต่อหน่วย */}
                                                                 <td className="text-end">
                                                                     {docRefType === '1' ? (
                                                                         <span>{formatCurrency(item.itemPriceUnit || 0)}</span>
@@ -1571,12 +1687,16 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                                                                         <input
                                                                             type="text"
                                                                             className="form-control text-end"
-                                                                            value={item.itemPriceUnit || 0}
+                                                                            value={item.itemPriceUnit || ''}
                                                                             onChange={(e) => handleChangeDetail(index, 'itemPriceUnit', e.target.value)}
+                                                                            onFocus={(e) => handleFocusDetail(index, 'itemPriceUnit')}
+                                                                            onBlur={(e) => handleBlurDetail(index, 'itemPriceUnit', e.target.value)}
                                                                             disabled={docRefType === '1' ? true : false}
                                                                         />
                                                                     )}
                                                                 </td>
+
+                                                                {/* ส่วนลด */}
                                                                 <td className="text-end">
                                                                     {docRefType === '1' ? (
                                                                         <span>{formatCurrency(item.itemDiscount || 0)}</span>
@@ -1586,10 +1706,14 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                                                                             className="form-control text-end"
                                                                             value={item.itemDiscount || 0}
                                                                             onChange={(e) => handleChangeDetail(index, 'itemDiscount', e.target.value)}
+                                                                            onFocus={(e) => handleFocusDetail(index, 'itemDiscount')}
+                                                                            onBlur={(e) => handleBlurDetail(index, 'itemDiscount', e.target.value)}
                                                                             disabled={docRefType === '1' ? true : false}
                                                                         />
                                                                     )}
                                                                 </td>
+
+                                                                {/* % */}
                                                                 <td className="text-center">
                                                                     {docRefType === '1' ? (
                                                                         <span>{item.itemDisType === "1" ? "฿" : item.itemDisType === "2" ? "%" : ""}</span>
@@ -1605,30 +1729,31 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                                                                         </select>
                                                                     )}
                                                                 </td>
+
+                                                                {/* จำนวนเงินรวม */}
                                                                 <td className="text-end">
-                                                                    {docRefType === '1' ? (
-                                                                        <span>{formatCurrency(item.itemTotal || 0)}</span>
-                                                                    ) : (
-                                                                        <input
-                                                                            type="text"
-                                                                            className="form-control text-end"
-                                                                            value={item.itemTotal || 0}
-                                                                            disabled={true}
-                                                                            onChange={(e) => handleChangeDetail(index, 'itemTotal', e.target.value)}
-                                                                        />
-                                                                    )}
+                                                                    <span>{formatCurrency(item.itemTotal || 0)}</span>
                                                                 </td>
+
                                                                 {docRefType === '2' ? (
                                                                     <>
+                                                                        {/* คลังสินค้า */}
                                                                         <td className="text-center">
-                                                                            <input
-                                                                                type="text"
-                                                                                className="form-control"
-                                                                                value={item.whName || ''}
-                                                                                disabled
-                                                                                onChange={(e) => handleChangeDetail(index, 'whId', item.whId)}
-                                                                            />
+                                                                            <select
+                                                                                name="whId"
+                                                                                value={item.whId}
+                                                                                onChange={(e) => handleChangeDetail(index, 'whId', e.target.value)}
+                                                                                className="form-select form-control"
+                                                                            >
+                                                                                {whDataList.map((warehouse) => (
+                                                                                    <option key={warehouse.WH_Id} value={warehouse.WH_Id}>
+                                                                                        {warehouse.WH_Name}
+                                                                                    </option>
+                                                                                ))}
+                                                                            </select>
                                                                         </td>
+
+                                                                        {/* ลบ */}
                                                                         <td className="text-center">
                                                                             <button
                                                                                 type="button"

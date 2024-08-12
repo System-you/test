@@ -725,6 +725,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                     // เงื่อนไขหาสินค้าที่รับไม่ครบ = จำนวนคงเหลือต้องไม่ = 0
                     if (Number(item.itemRecBalance) !== 0) {
                         // *************************************** UPDATE PO_D ****************************************
+                        let itemQty = parseInt(item.itemQty);
                         let itemRecQty = parseInt(item.itemRecQty);
                         let itemRecBalance = parseFloat("0.00");
                         let itemDiscount = parseInt(item.itemDiscount);
@@ -750,14 +751,14 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             item_id: item.itemId,
                             item_code: item.itemCode,
                             item_name: item.itemName,
-                            item_qty: itemRecQty,
+                            item_qty: itemQty - itemRecQty,
                             item_unit: item.itemUnit,
                             item_price_unit: parseCurrency(item.itemPriceUnit),
                             item_discount: parseCurrency(item.itemDiscount),
                             item_distype: item.itemDisType === '1' ? 1 : 2,
                             item_total: parseFloat(itemRecQty * parseCurrency(item.itemPriceUnit)),
                             item_rec_qty: parseFloat("0.00"),
-                            item_rec_balance: itemRecQty,
+                            item_rec_balance: itemQty - itemRecQty,
                             item_status: parseInt("0", 10),
                             wh_id: parseInt(item.whId, 10),
                             zone_id: parseInt("1", 10),

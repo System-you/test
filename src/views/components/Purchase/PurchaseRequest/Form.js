@@ -663,7 +663,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                     itemCode: itemSelected.Item_Code,
                     itemName: itemSelected.Item_Name,
                     itemQty: 0,
-                    itemUnit: itemSelected.Item_Unit_IN,
+                    itemUnit: itemSelected.Item_Unit_ST,
                     itemPriceUnit: formatCurrency(itemSelected.Item_Cost || 0),
                     itemDiscount: formatCurrency(0),
                     itemDisType: "1",

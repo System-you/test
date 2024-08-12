@@ -174,7 +174,7 @@ function Main({ masterList, detailList, statusColours, name, onPageInsert, onRow
                         apCode: 'AP_Code',
                         apName: 'AP_Name',
                         dueDate: 'Doc_DueDate',
-                        netTotal: 'NetTotal',
+                        netTotal: 'Total_Pay_Per',
                         createdBy: 'Created_By_Name',
                         updatedBy: 'Update_By_Name'
                     }}

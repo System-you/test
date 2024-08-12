@@ -89,16 +89,16 @@ function Sidebar() {
                   <p>Dashboard</p>
                 </a>
               </li>
-              <li className={`nav-item ${['/deposit-slip', '/purchase-request', '/purchase-order', '/product-receipt', '/payment-voucher', '/purchase-list'].includes(location.pathname) ? 'active' : ''} text-white`}>
+              <li className={`nav-item ${['/deposit-document', '/purchase-request', '/purchase-order', '/product-receipt', '/payment-voucher', '/purchase-list'].includes(location.pathname) ? 'active' : ''} text-white`}>
                 <a href="/purchase" className="collapsed" aria-expanded="false">
                   <i className="fas fa-shopping-cart" style={{ color: 'white' }} />
                   <p>จัดซื้อสินค้า</p>
                   <span className="caret" />
                 </a>
-                <div className={`collapse ${['/purchase', '/deposit-slip', '/purchase-request', '/purchase-order', '/product-receipt', '/payment-voucher', '/purchase-list'].includes(location.pathname) ? 'show' : ''}`} id="data">
+                <div className={`collapse ${['/purchase', '/deposit-document', '/purchase-request', '/purchase-order', '/product-receipt', '/payment-voucher', '/purchase-list'].includes(location.pathname) ? 'show' : ''}`} id="data">
                   <ul className="nav nav-collapse">
-                    <li className={`nav-item ${location.pathname === '/deposit-slip' ? 'active' : ''}`}>
-                      <a href="/deposit-slip">
+                    <li className={`nav-item ${location.pathname === '/deposit-document' ? 'active' : ''}`}>
+                      <a href="/deposit-document">
                         <span className="sub-item">ใบมัดจำ</span>
                       </a>
                     </li>

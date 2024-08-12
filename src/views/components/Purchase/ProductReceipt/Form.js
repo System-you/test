@@ -419,7 +419,7 @@ function Form({ callInitialize, mode, name, maxRecNo }) {
                         let maxLine = parseInt(getMaxLine[0].Line, 10) + 1;
 
                         const detailPromises = validDetails.map(async (item) => {
-                            const formDetailData = {
+                            let formDetailData = {
                                 rec_id: recId,
                                 line: lineIndex,
                                 item_id: item.itemId,
@@ -438,12 +438,12 @@ function Form({ callInitialize, mode, name, maxRecNo }) {
                                 ds_seq: formatDateTime(new Date())
                             };
 
-                            const detailResponse = await getByDocId("PO_D", formMasterList.refDocID, `AND Item_Status = 1  AND Item_Id = ${item.itemId}`);
+                            let detailResponse = await getByDocId("PO_D", formMasterList.refDocID, `AND Item_Status = 1  AND Item_Id = ${item.itemId}`);
 
                             // if (ปิด PO && ค้างรับมีค่ามากกว่า 0 )
                             if (status === 3 && detailResponse[0].Item_REC_Balance > 0) {
                                 // REC_D มาจากค่าที่รับจากหน้าจอ
-                                const itemQtyRec = parseFloat(item.itemQty);
+                                let itemQtyRec = parseFloat(item.itemQty);
 
                                 let insertItemTotal = (detailResponse[0].Item_REC_Balance - itemQtyRec) * detailResponse[0].Item_Price_Unit;
 
@@ -454,7 +454,7 @@ function Form({ callInitialize, mode, name, maxRecNo }) {
                                 }
 
                                 // Form Insert PO_D
-                                const formInsert = {
+                                let formInsert = {
                                     doc_id: parseInt(detailResponse[0].Doc_ID, 10),
                                     line: maxLine,
                                     item_id: item.itemId,
@@ -482,9 +482,9 @@ function Form({ callInitialize, mode, name, maxRecNo }) {
                                 });
 
                                 // คำนวณค่าต่าง ๆ
-                                const itemQty = detailResponse[0].Item_REC_Qty + itemQtyRec; // 0 + 3 = 3
-                                const itemRecQty = detailResponse[0].Item_REC_Qty + itemQtyRec; // 0 + 3 = 3
-                                const itemRecBalance = parseFloat("0.00");
+                                let itemQty = detailResponse[0].Item_REC_Qty + itemQtyRec; // 0 + 3 = 3
+                                let itemRecQty = detailResponse[0].Item_REC_Qty + itemQtyRec; // 0 + 3 = 3
+                                let itemRecBalance = parseFloat("0.00");
 
                                 let updateItemTotal = itemQty * detailResponse[0].Item_Price_Unit;
 
@@ -502,9 +502,9 @@ function Form({ callInitialize, mode, name, maxRecNo }) {
                                 );
                             } else {
                                 // คำนวณค่าต่าง ๆ
-                                const itemQty = parseFloat(item.itemQty);
-                                const itemRecQty = detailResponse[0].Item_REC_Qty + itemQty;
-                                const itemRecBalance = detailResponse[0].Item_REC_Balance - itemQty;
+                                let itemQty = parseFloat(item.itemQty);
+                                let itemRecQty = detailResponse[0].Item_REC_Qty + itemQty;
+                                let itemRecBalance = detailResponse[0].Item_REC_Balance - itemQty;
 
                                 // ลบจำนวนสินค้าที่ PO_D จำนวนรับ และ จำนวนค้างรับ (updateQty = async (table, updateCode, where))
                                 await updateQty(

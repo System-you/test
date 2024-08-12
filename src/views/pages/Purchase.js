@@ -49,7 +49,7 @@ function Purchase() {
                 ]} />
               </div>
               <div className="row">
-                {renderCard('ใบมัดจำ', 'far fa-file-alt', 1, [5, 0, 0], '/deposit-slip')}
+                {renderCard('ใบมัดจำ', 'far fa-file-alt', 1, [5, 0, 0], '/deposit-document')}
                 {/* ใบขอซื้อ */}
                 <div className="col-sm-6 col-md-2" style={{ cursor: 'pointer' }} onClick={() => window.location.replace('/purchase-request')}>
                   <div className="card card-stats card-round">

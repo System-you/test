@@ -83,15 +83,17 @@ const ItemTable = ({
                                     <th className="text-center" style={{ width: '8%' }}>ส่วนลด</th>
                                     <th className="text-center" style={{ width: '5%' }}>%</th>
                                     <th className="text-center" style={
-                                        window.location.pathname === '/purchase-request'
-                                            || window.location.pathname === '/purchase-order' ?
+                                        window.location.pathname === '/deposit-document' ||
+                                            window.location.pathname === '/purchase-request' ||
+                                            window.location.pathname === '/purchase-order' ?
                                             { width: '10%' } : { width: '7%' }}>
                                         จำนวนเงินรวม
                                     </th>
                                     <th className="text-center"
                                         style={{ width: getColumnWidth() }}
-                                        hidden={window.location.pathname === '/purchase-request'
-                                            || window.location.pathname === '/purchase-order'}>
+                                        hidden={window.location.pathname === '/deposit-document' ||
+                                            window.location.pathname === '/purchase-request' ||
+                                            window.location.pathname === '/purchase-order'}>
                                         คลังสินค้า
                                     </th>
                                     <th className="text-center" style={{ width: '3%' }}>ลบ</th>
@@ -281,8 +283,9 @@ const ItemTable = ({
 
                                         {/* คลังสินค้า */}
                                         <td className="text-center"
-                                            hidden={window.location.pathname === '/purchase-request'
-                                                || window.location.pathname === '/purchase-order'}>
+                                            hidden={window.location.pathname === '/deposit-document' ||
+                                                window.location.pathname === '/purchase-request' ||
+                                                window.location.pathname === '/purchase-order'}>
                                             <select
                                                 name="whId"
                                                 value={item.whId}

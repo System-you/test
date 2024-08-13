@@ -43,6 +43,10 @@ import {
     updateQty,
     deleteDetail
 } from '../../../../utils/SamuiUtils';
+import {
+    updateWhItemOnHand,
+    insertWhItemStc
+} from '../../../../utils/WarehouseUtils';
 
 function Form({ callInitialize, mode, name, maxRecNo }) {
     const [formMasterList, setFormMasterList] = useState(recMasterModel());
@@ -516,8 +520,74 @@ function Form({ callInitialize, mode, name, maxRecNo }) {
 
                             lineIndex++;
 
-                            // For Log PO_D
-                            // console.log("formDetailData : ", formDetailData);
+                            // ตามหาจำนวนล่าสุดของ STC_Balance โดยการใช้ LIMIT 1 เพื่อให้ได้ตัวแรกมาเสมอ (ค้างเรื่อง LIMIT ไว้ก่อน ตอนนี้ใช้ [0] ไปก่อน)
+                            let getItemOnHand = await getAllData("WH_ITEM_Onhand", `AND Item_Id = ${item.itemId} AND WH_Id = ${item.whId}`);
+
+                            // Update ข้อมูล ใน Table : WH_ITEM_Onhand (lastQty, itemOnHand, lastStcSeq, lastStcDate, itemId, whId)
+                            if (getItemOnHand.length > 0) {
+                                let lastQty = parseInt(item.itemQty); // จำนวนไอเทมที่รับ
+                                let itemOnHand = parseInt(getItemOnHand[0].Item_Onhand) + lastQty; // Item_Onhand + จำนวนไอเทมที่รับ
+                                let lastStcSeq = formatDateTime(new Date()); // ล่าสุด (ตามสูตร)
+                                let lastStcDate = null; // วันที่บันทึก (ตาม Format)
+                                let itemId = parseInt(item.itemId); // WHERE Item_Id = Item
+                                let whId = parseInt(item.whId); // WHERE WH_Id = Warehouse จากหน้าจอ
+
+                                // Utils ใหม่ เดี๋ยวรอทดสอบพร้อมพี่แบงค์
+                                await updateWhItemOnHand(
+                                    lastQty,
+                                    itemOnHand,
+                                    lastStcSeq,
+                                    lastStcDate,
+                                    itemId,
+                                    whId
+                                );
+                            }
+
+                            // ตามหาจำนวนล่าสุดของ STC_Balance โดยการใช้ LIMIT 1 เพื่อให้ได้ตัวแรกมาเสมอ (ค้างเรื่อง LIMIT ไว้ก่อน ตอนนี้ใช้ [0] ไปก่อน)
+                            let getMaxStcBalance = await getAllData("WH_ITEM_STC", `AND WH_Id = ${item.whId} AND Item_Id = ${item.itemId} ORDER BY STC_SEQ DESC`);
+
+                            // Insert ข้อมูล ใน Table : WH_ITEM_STC (itemId, itemCode, itemName, docType, stcQty, stcBalance, stcDate, stcBy, 
+                            // docId, docNo, docNoRef, stcRemark, stcSeq, whId, zoneId, ltId)
+                            if (getMaxStcBalance.length > 0) {
+                                let itemId = item.itemId;
+                                let itemCode = item.itemCode;
+                                let itemName = item.itemName;
+                                let docType = 'IN';
+                                let refBalance = parseInt("0", 10);
+                                let stcQty = parseInt(item.itemQty);
+                                let stcBalance = parseInt(getMaxStcBalance[0].STC_Balance) + parseInt(item.itemQty);
+                                let stcDate = formatThaiDateUiToDate(getCreateDateTime());
+                                let stcBy = '1';
+                                let docId = '0';
+                                let docNo = formMasterData.rec_no;
+                                let docNoRef = formMasterData.rec_no;
+                                let stcRemark = null;
+                                let stcSeq = formatDateTime(new Date());
+                                let whId = item.whId;
+                                let zoneId = parseInt("0", 10);
+                                let ltId = parseInt("0", 10);
+
+                                // Utils ใหม่ เดี๋ยวรอทดสอบพร้อมพี่แบงค์
+                                await insertWhItemStc(
+                                    itemId,
+                                    itemCode,
+                                    itemName,
+                                    docType,
+                                    refBalance,
+                                    stcQty,
+                                    stcBalance,
+                                    stcDate,
+                                    stcBy,
+                                    docId,
+                                    docNo,
+                                    docNoRef,
+                                    stcRemark,
+                                    stcSeq,
+                                    whId,
+                                    zoneId,
+                                    ltId
+                                );
+                            }
 
                             return Axios.post(`${process.env.REACT_APP_API_URL}/api/create-rec-d`, formDetailData, {
                                 headers: { key: process.env.REACT_APP_ANALYTICS_KEY }
@@ -1650,7 +1720,7 @@ function Form({ callInitialize, mode, name, maxRecNo }) {
                     onUpdate={handleConfirmtModal}
                     onCancel={handleCancel}
                     mode={mode}
-                    disabled={docStatusPo === 4 || docStatusReceivePo === 3 || formMasterList.recStatus !== 2 ? true : false}
+                    disabled={docStatusPo === 4 || formMasterList.recStatus !== 2 ? true : false}
                 />
             </div>
             <br />

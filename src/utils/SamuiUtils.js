@@ -1,6 +1,5 @@
 import Axios from "axios";
 import Swal from "sweetalert2";
-import moment from 'moment';
 
 // ดึงข้อมูลจาก Table ใดๆ ก็ได้
 const getAllData = async (table, order) => {

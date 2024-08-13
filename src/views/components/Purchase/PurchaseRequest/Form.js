@@ -314,19 +314,19 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                 created_date: formatThaiDateUiToDate(formMasterList.createdDate),
                 created_by_name: window.localStorage.getItem('name'),
                 created_by_id: "1",
-                update_date: formMasterList.updateDate,
-                update_by_name: formMasterList.updateByName,
-                update_by_id: formMasterList.updateById,
-                approved_date: formMasterList.approvedDate,
-                approved_by_name: formMasterList.approvedByName,
-                approved_by_id: formMasterList.approvedById,
-                cancel_date: formMasterList.cancelDate,
-                cancel_by_name: formMasterList.cancelByName,
-                cancel_by_id: formMasterList.cancelById,
-                approved_memo: formMasterList.approvedMemo,
+                update_date: null,
+                update_by_name: null,
+                update_by_id: null,
+                approved_date: null,
+                approved_by_name: null,
+                approved_by_id: null,
+                cancel_date: null,
+                cancel_by_name: null,
+                cancel_by_id: null,
+                approved_memo: null,
                 printed_status: "N",
-                printed_date: formMasterList.printedDate,
-                printed_by: formMasterList.printedBy
+                printed_date: null,
+                printed_by: null
             };
 
             // For Log PR_H

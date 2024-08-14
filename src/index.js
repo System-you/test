@@ -16,8 +16,14 @@ import WarehouseStock from "./views/pages/Warehouse/WarehouseStock";
 import TreasuryDocuments from "./views/pages/Warehouse/TreasuryDocuments";
 import NotFoundPage from "./views/pages/404";
 const root = ReactDOM.createRoot(document.getElementById("root"));
-const isLoggedIn = localStorage.getItem('token');
+const App = () => {
+  const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('token'));
 
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    setIsLoggedIn(!!token);
+  }, []);
+};
 root.render(
   <BrowserRouter>
     <Routes>

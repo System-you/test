@@ -6897,7 +6897,8 @@ label.error {
 
 .modal-content {
    border-radius: .4rem;
-   border: 0 !important;
+   border: 1px solid black !important;
+   background-color: #fffbf6;
 }
 
 .rating>label {

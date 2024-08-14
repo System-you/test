@@ -11,7 +11,7 @@ function Main({ masterList, detailList, statusColours, name, onPageInsert, onRow
     const [dataMasterList, setDataMasterList] = useState([]);
     const [dataDetailList, setDataDetailList] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage] = useState(12);
+    const [itemsPerPage] = useState(16);
     const [countWaitPay, setCountWaitPay] = useState(0);
     const [countPaid, setCountPaid] = useState(0);
     const [countCancel, setCountCancel] = useState(0);

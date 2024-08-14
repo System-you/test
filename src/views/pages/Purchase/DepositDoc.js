@@ -40,8 +40,8 @@ function PurchaseRequest() {
       }
 
       // หาค่าสูงของ DocNo ใน PR_H
-      const findMaxDocNo = await getAllData('PR_H', 'ORDER BY Doc_No DESC');
-      const maxDoc = getMaxDocNo(findMaxDocNo, 'PR');
+      const findMaxDocNo = await getAllData('DEPOS_H', 'ORDER BY Doc_No DESC');
+      const maxDoc = getMaxDocNo(findMaxDocNo, 'DS');
       setMaxDocNo(maxDoc);
     } catch (error) {
       getAlert('FAILED', error.message);

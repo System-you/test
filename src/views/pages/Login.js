@@ -15,6 +15,7 @@ function Login() {
     const initialize = async () => {
         try {
             localStorage.removeItem('token');
+            localStorage.removeItem('emp_id');
             localStorage.removeItem('name');
             localStorage.removeItem('company');
             const companyList = await getCompany();
@@ -72,6 +73,7 @@ function Login() {
 
                 if (authenStatus === 'OK') {
                     localStorage.setItem('token', token);
+                    localStorage.setItem('emp_id', authenData.Emp_Id);
                     localStorage.setItem('name', authenData.Emp_Name);
                     localStorage.setItem('company', authenData.Comp_Id);
 
@@ -82,12 +84,14 @@ function Login() {
                 } else {
                     // ลบข้อมูลจาก localStorage หากการตรวจสอบ Authen ไม่สำเร็จ
                     localStorage.removeItem('token');
+                    localStorage.removeItem('emp_id');
                     localStorage.removeItem('name');
                     localStorage.removeItem('company');
                 }
             } else {
                 // ลบข้อมูลจาก localStorage หากล็อกอินไม่สำเร็จ
                 localStorage.removeItem('token');
+                localStorage.removeItem('emp_id');
                 localStorage.removeItem('name');
                 localStorage.removeItem('company');
             }

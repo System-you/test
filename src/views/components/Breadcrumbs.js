@@ -1,6 +1,6 @@
 import React from 'react';
 
-const Breadcrumbs = ({ page, items }) => {
+const Breadcrumbs = ({ page, isShowStatus, statusName, statusColour, items }) => {
     return (
         <div className="page-header" style={{ paddingTop: '2rem' }}>
             <h1 className="fw-bold" style={{ color: '#2A2F5B' }}>{page}</h1>
@@ -27,6 +27,20 @@ const Breadcrumbs = ({ page, items }) => {
                     </React.Fragment>
                 ))}
             </ul>
+            {isShowStatus && (
+                <div className="page-header col-2" style={{ marginBottom: '-1px', marginLeft: '30px' }}>
+                    <button
+                        className="btn btn-lg w-75"
+                        style={{
+                            backgroundColor: statusColour,
+                            fontSize: '18px',
+                            color: 'white'
+                        }}
+                    >
+                        {statusName}
+                    </button>
+                </div>
+            )}
         </div>
     );
 };

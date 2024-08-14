@@ -52,6 +52,23 @@ const getByRecId = async (table, recId, andOrder) => {
     }
 };
 
+// ดึงข้อมูลจาก Table ใดๆ ก็ได้ โดยใช้ PayId
+const getByPayId = async (table, payId, andOrder) => {
+    try {
+        const response = await Axios.post(`${process.env.REACT_APP_API_URL}/api/get-by-pay-id`, {
+            table: table,
+            pay_id: payId,
+            and_order: andOrder
+        }, {
+            headers: { key: 'SAMUI1WoV5UbrGPq5iOXS2SS4ODR9999' }
+        });
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching data:", error);
+        return null;
+    }
+};
+
 // ดึงข้อมูลจาก Tb_Set_Company
 const getCompany = async () => {
     try {
@@ -669,6 +686,7 @@ export {
     getAllData,
     getByDocId,
     getByRecId,
+    getByPayId,
     getCompany,
     getDocType,
     getTransType,

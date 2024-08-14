@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const FormAction = ({ onSubmit, onUpdate, onCancel, onRecover, onClosePo, docStatus, mode, disabled }) => {
+const FormAction = ({ onSubmit, onUpdate, onCancel, onRecover, onClosePo, onApprovedPay, docStatus, mode, disabled }) => {
     const [showModal, setShowModal] = useState(false);
     const [action, setAction] = useState(null);
 
@@ -15,6 +15,7 @@ const FormAction = ({ onSubmit, onUpdate, onCancel, onRecover, onClosePo, docSta
         if (action === 'recover') onRecover();
         if (action === 'cancel') onCancel();
         if (action === 'closePo') onClosePo();
+        if (action === 'approved') onApprovedPay();
         setShowModal(false);
     };
 
@@ -30,6 +31,8 @@ const FormAction = ({ onSubmit, onUpdate, onCancel, onRecover, onClosePo, docSta
                 return 'ยกเลิกข้อมูล';
             case 'closePo':
                 return 'ปิดใบ PO ';
+            case 'approved':
+                return 'ยืนยันการชำระเงิน ';
             default:
                 return '';
         }
@@ -38,7 +41,22 @@ const FormAction = ({ onSubmit, onUpdate, onCancel, onRecover, onClosePo, docSta
     return (
         <div>
             <div className="row mt-2">
-                <div className="col-6">
+                <div className="col-6" hidden={window.location.pathname === '/deposit-document'
+                    || window.location.pathname === '/purchase-order'} />
+
+                <div className="col-6" hidden={window.location.pathname !== '/deposit-document'}>
+                    <button
+                        onClick={() => handleShowModal('approved')}
+                        type="button"
+                        hidden={mode === 'I' || docStatus !== 2}
+                        className="btn btn-lg w-30 shadow text-white"
+                        style={{ marginLeft: '20px', backgroundColor: 'green', fontSize: '16px' }}
+                        disabled={docStatus !== 2}
+                    >
+                        ยืนยันการชำระเงิน
+                    </button>
+                </div>
+                <div className="col-6" hidden={window.location.pathname !== '/purchase-order'}>
                     <button
                         onClick={() => handleShowModal('closePo')}
                         type="button"

@@ -11,7 +11,7 @@ function PaymentVoucher() {
   const [dataMasterList, setDataMasterList] = useState([]);
   const [dataDetailList, setDataDetailList] = useState([]);
   const [statusColours, setStatusColours] = useState([]);
-  const [maxDocNo, setMaxDocNo] = useState();
+  const [maxPayNo, setMaxPayNo] = useState();
 
   useEffect(() => {
     initialize();
@@ -38,8 +38,8 @@ function PaymentVoucher() {
 
       // หาค่าสูงของ PayNo ใน PAY_H
       const findMaxPayNo = await getAllData('PAY_H', 'ORDER BY Pay_No DESC');
-      const maxDoc = getMaxPayNo(findMaxPayNo);
-      setMaxDocNo(maxDoc);
+      const maxPay = getMaxPayNo(findMaxPayNo);
+      setMaxPayNo(maxPay);
     } catch (error) {
       getAlert('FAILED', error.message);
     }
@@ -58,8 +58,8 @@ function PaymentVoucher() {
     setMode('I')
   };
 
-  const onRowSelected = (docNo) => {
-    setMaxDocNo(docNo);
+  const onRowSelected = (payNo) => {
+    setMaxPayNo(payNo);
     setMode('U');
   };
 
@@ -77,10 +77,10 @@ function PaymentVoucher() {
                   statusColours={statusColours}
                   name={'ใบสำคัญจ่าย'}
                   onPageInsert={() => onPageInsert()}
-                  onRowSelected={(docNo) => onRowSelected(docNo)}
+                  onRowSelected={(payNo) => onRowSelected(payNo)}
                 />
               ) : (
-                <Form callInitialize={initialize} mode={mode} name={'ใบสำคัญจ่าย'} maxDocNo={maxDocNo} />
+                <Form callInitialize={initialize} mode={mode} name={'ใบสำคัญจ่าย'} maxPayNo={maxPayNo} />
               )}
             </div>
           </div>

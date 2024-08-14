@@ -11,6 +11,7 @@ import Breadcrumbs from '../../Breadcrumbs';
 import RecModal from '../../Modal/RecModal';
 import ApModal from '../../Modal/ApModal';
 import ItemModal from '../../Modal/ItemModal';
+import DeposModal from '../../Modal/DeposModal';
 import FormAction from '../../Actions/FormAction';
 
 // Model
@@ -20,6 +21,9 @@ import { payDetailModel } from '../../../../model/Purchase/PayDetailModel';
 // Utils
 import {
     getAllData,
+    getByDocId,
+    getByRecId,
+    getByPayId,
     getDocType,
     getTransType,
     getViewAp,
@@ -33,18 +37,21 @@ import {
     formatThaiDateUi,
     formatThaiDateUiToDate,
     getMaxPayNo,
-    getCreateDateTime
+    getCreateDateTime,
+    setCreateDateTime
 } from '../../../../utils/SamuiUtils';
 
-function Form({ callInitialize, mode, name, maxDocNo }) {
+function Form({ callInitialize, mode, name, maxPayNo }) {
     const [formMasterList, setFormMasterList] = useState([payMasterModel()]);
     const [formDetailList, setFormDetailList] = useState([]);
     const [tbDocType, setTbDocType] = useState([]);
     const [tbTransType, setTbTransType] = useState([]);
     const [recDataList, setRecDataList] = useState([]);
     const [apDataList, setApDataList] = useState([]);
+    const [arDataList, setArDataList] = useState([]);
     const [itemDataList, setItemDataList] = useState([]);
     const [whDataList, setWhDataList] = useState([]);
+    const [deposDataList, setDeposDataList] = useState([]);
 
     // การคำนวณเงิน
     const [selectedDiscountValueType, setSelectedDiscountValueType] = useState("2");
@@ -55,8 +62,12 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
     const [isVatChecked, setIsVatChecked] = useState(false);
     const [vatAmount, setVatAmount] = useState(0);
 
+    // การแสดงสถานะใบ
+    const [statusName, setStatusName] = useState("");
+    const [statusColour, setStatusColour] = useState("");
+
     // ใช้สำหรับการ Rendered Form ต่างๆ
-    const [docRefType, setDocTypeRef] = useState("1");
+    const [docRefType, setDocRefType] = useState("1");
 
     // ใช้สำหรับการทำเรื่องจ่ายเป็นงวด
     const [paymentStatus, setPaymentStatus] = useState('oneTime'); // สถานะการจ่าย (จ่ายครั้งเดียว หรือ จ่ายเป็นงวด)
@@ -88,6 +99,11 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                 setApDataList(apDataList);
             }
 
+            const arDataList = await getAllData('Tb_Set_AR', 'ORDER BY AR_Code ASC');
+            if (arDataList && arDataList.length > 0) {
+                setArDataList(arDataList);
+            }
+
             const itemDataList = await getViewItem();
             if (itemDataList && itemDataList.length > 0) {
                 setItemDataList(itemDataList);
@@ -98,118 +114,138 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                 setWhDataList(whDataList);
             }
 
+            const deposDataList = await getAllData('API_0501_DEPOS_H', 'ORDER BY Doc_No DESC');
+            if (deposDataList && deposDataList.length > 0) {
+                setDeposDataList(deposDataList);
+            }
+
             // สำหรับ View เข้ามาเพื่อแก้ไขข้อมูล
             if (mode === 'U') {
-                // await getModelByNo(apDataList);
-                getAlert('FAILED', "กำลังปรับปรุงระบบ ยังไม่สามารถกลับมาดูได้");
+                await getModelByNo(apDataList, recDataList);
             }
         } catch (error) {
             getAlert('FAILED', error.message);
         }
     };
 
-    // const getModelByNo = async (apDataList) => {
-    //     try {
-    //         // ค้นหาข้อมูลที่ตรงกับใน PR_H และ AP_ID ใน apDataList
-    //         const [getAllPayH] = await Promise.all([
-    //             getAllData('API_0401_PAY_H', ''),
-    //         ]);
+    const getModelByNo = async (apDataList, recDataList) => {
+        try {
+            // ค้นหาข้อมูลที่ตรงกับใน AP_ID ใน apDataList
+            const findMaster = await getAllData('PAY_H', '');
+            const fromDatabase = findMaster.find(rec => rec.Pay_No === maxPayNo);
 
-    //         const fromViewPayH = getAllPayH.find(pay => pay.Pay_No === maxDocNo);
+            if (!fromDatabase) {
+                throw new Error("ไม่พบข้อมูลเอกสาร");
+            }
 
-    //         const [fromViewAp] = await Promise.all([
-    //             apDataList.find(ap => ap.AP_Id === fromViewPayH.AP_Id)
-    //         ]);
+            // ค้นหาข้อมูลผู้ขายด้วย AP_ID
+            const fromViewAp = apDataList.find(ap => ap.AP_Id === fromDatabase.AP_Id);
 
-    //         if (!fromViewPayH || !fromViewAp) {
-    //             throw new Error("Data not found");
-    //         };
+            if (!fromViewAp) {
+                throw new Error("ไม่พบข้อมูลผู้ขาย");
+            }
 
-    //         // ฟังก์ชันเพื่อสร้างโมเดลใหม่สำหรับแต่ละแถวและคำนวณ itemTotal
-    //         const createNewRow = (index, itemSelected) => {
-    //             const itemQty = Number(itemSelected.Item_Qty) || 0;
-    //             const itemPriceUnit = Number(itemSelected.Item_Price_Unit) || 0;
-    //             const itemDiscount = Number(itemSelected.Item_Discount) || 0;
-    //             let itemTotal = itemQty * itemPriceUnit;
+            // ค้นหาข้อมูล VIEW
+            const findViewMaster = await getAllData('API_0401_PAY_H', '');
+            const fromView = findViewMaster.find(data => data.Pay_No === maxPayNo);
 
-    //             if (itemSelected.Item_DisType === 2) {
-    //                 itemTotal -= (itemDiscount / 100) * itemTotal; // ลดตามเปอร์เซ็นต์
-    //             } else {
-    //                 itemTotal -= itemDiscount; // ลดตามจำนวนเงิน
-    //             }
+            if (fromView) {
+                setStatusName(fromView.PayStatus_Name);
+                setStatusColour(fromView.PayStatus_Colour);
+            }
 
-    //             return {
-    //                 ...payDetailModel(index + 1),
-    //                 line: itemSelected.Line,
-    //                 itemId: itemSelected.Item_Id,
-    //                 itemCode: itemSelected.Item_Code,
-    //                 itemName: itemSelected.Item_Name,
-    //                 itemQty,
-    //                 itemUnit: itemSelected.Item_Unit,
-    //                 itemPriceUnit,
-    //                 itemDiscount,
-    //                 itemDisType: String(itemSelected.Item_DisType),
-    //                 itemTotal,
-    //                 itemStatus: itemSelected.Item_Status,
-    //                 whId: itemSelected.WH_ID,
-    //                 whName: itemSelected.WH_Name,
-    //                 zoneId: itemSelected.Zone_ID,
-    //                 ltId: itemSelected.LT_ID,
-    //                 dsSeq: itemSelected.DS_SEQ,
-    //             };
-    //         };
+            // SET ข้อมูลตาม PAY_TYPE
+            handleChangePayType(String(fromDatabase.Pay_Type));
 
-    //         const getAllItem = await getAllData('API_0402_PAY_D', 'AND Item_Status = 1 ORDER BY Line ASC');
-    //         const filterItem = getAllItem.filter(item => item.Pay_No === maxDocNo);
+            // ตั้งค่าข้อมูลเอกสารหลัก
+            setFormMasterList([
+                {
+                    ...mapDatabaseToFormMasterList(fromDatabase),
+                    apName: fromViewAp.AP_Name,
+                    apAdd1: fromViewAp.AP_Add1,
+                    apAdd2: fromViewAp.AP_Add2,
+                    apAdd3: fromViewAp.AP_Add3,
+                    apProvince: fromViewAp.AP_Province,
+                    apZipcode: fromViewAp.AP_Zipcode,
+                    apTaxNo: fromViewAp.AP_TaxNo,
+                }
+            ]);
 
-    //         if (filterItem.length > 0) {
-    //             const newFormDetails = filterItem.map((item, index) => createNewRow(formDetailList.length + index, item));
+            // ค้นหาใบที่เชื่อมกับใบแม่
+            const fromSubMaster = await getAllData('PAY_H', `AND Ref_DocID = ${fromDatabase.Pay_Id}`);
+            if (fromSubMaster.length > 0) {
+                setFormMasterList(prevState => [
+                    ...prevState,
+                    ...fromSubMaster.map(subMaster => mapDatabaseToFormMasterList(subMaster))
+                ]);
+            }
 
-    //             setFormDetailList(newFormDetails);
+            // ค้นหาข้อมูลของ Detail ด้วย Doc_ID
+            const fromDetail = await getByPayId('PAY_D', fromDatabase.Pay_Id, `ORDER BY Line ASC`);
+            if (fromDetail.length > 0) {
+                const recSelected = fromDetail.map(detail => recDataList.find(rec => rec.Rec_ID === parseInt(detail.Rec_Id, 10))).filter(Boolean);
+                await onRowSelectRec(recSelected);
+            } else {
+                getAlert('FAILED', `ไม่พบข้อมูลที่ตรงกับเลขที่เอกสาร ${fromDatabase.Doc_No} กรุณาตรวจสอบและลองอีกครั้ง`);
+            }
+        } catch (error) {
+            getAlert("FAILED", error.message || error);
+        }
+    };
 
-    //             const firstItem = filterItem[0];
-
-    //             setFormMasterList({
-    //                 refDocID: fromViewPayH.Ref_DocID,
-    //                 refDoc: fromViewPayH.Ref_Doc,
-    //                 refDocDate: formatThaiDateUi(fromViewPayH.Ref_DocDate),
-    //                 docDate: formatThaiDate(fromViewPayH.Pay_Date),
-    //                 docDueDate: formatThaiDate(fromViewPayH.Pay_DueDate),
-    //                 docRemark1: fromViewPayH.Doc_Remark1,
-    //                 docRemark2: fromViewPayH.Doc_Remark2,
-    //                 docType: fromViewPayH.Doc_Type,
-    //                 docFor: fromViewPayH.Doc_For,
-    //                 transportType: fromViewPayH.Transport_Type,
-    //                 discountValue: fromViewPayH.Discount_Value,
-    //                 creditTerm: firstItem.CreditTerm,
-    //                 apID: fromViewPayH.AP_ID,
-    //                 apCode: firstItem.AP_Code,
-    //                 apName: firstItem.AP_Name,
-    //                 apAdd1: firstItem.AP_Add1,
-    //                 apAdd2: firstItem.AP_Add2,
-    //                 apAdd3: firstItem.AP_Add3,
-    //                 apProvince: firstItem.AP_Province,
-    //                 apZipcode: firstItem.AP_Zipcode,
-    //                 apTaxNo: firstItem.AP_TaxNo,
-    //                 createdByName: firstItem.Created_By_Name,
-    //                 createdDate: getCreateDateTime(),
-    //                 updateDate: firstItem.Update_Date,
-    //                 updateByName: firstItem.Update_By_Name
-    //             });
-
-    //             setIsVatChecked(fromViewPayH.IsVat === 1 ? true : false);
-
-    //             const discountValueType = Number(fromViewPayH.Discount_Value_Type);
-    //             if (!isNaN(discountValueType)) {
-    //                 setSelectedDiscountValueType(discountValueType.toString());
-    //             }
-    //         } else {
-    //             getAlert('FAILED', `ไม่พบข้อมูลที่ตรงกับเลขที่เอกสาร ${fromViewPayH.Doc_No} กรุณาตรวจสอบและลองอีกครั้ง`);
-    //         }
-    //     } catch (error) {
-    //         getAlert("FAILED", error.message || error);
-    //     }
-    // };
+    const mapDatabaseToFormMasterList = (database) => ({
+        docRefType: database.Pay_Type,
+        datePay: formatThaiDateUi(database.Doc_DueDate),
+        amountPay: formatCurrency(database.Total_Pay_Per),
+        payId: database.Pay_Id,
+        payNo: database.Pay_No,
+        payDate: formatThaiDateUi(database.Pay_Date || null),
+        docDueDate: formatThaiDateUi(database.Doc_DueDate || null),
+        payStatus: database.Pay_Status,
+        payType: database.Pay_Type,
+        refDocID: database.Ref_DocID,
+        refDoc: database.Ref_Doc,
+        refDocDate: formatThaiDateUi(database.Ref_DocDate),
+        compId: database.Comp_Id,
+        refProjectID: database.Ref_ProjectID,
+        refProjectNo: database.Ref_ProjectNo,
+        transportType: database.Transport_Type,
+        docRemark1: database.Doc_Remark1,
+        docRemark2: database.Doc_Remark2,
+        apID: database.AP_ID,
+        apCode: database.AP_Code,
+        actionHold: database.Action_Hold,
+        discountValue: database.Discount_Value,
+        discountValueType: database.Discount_Value_Type,
+        discountCash: database.Discount_Cash,
+        discountCashType: database.Discount_Cash_Type,
+        discountTransport: database.Discount_Transport,
+        discountTransportType: database.Discount_Transport_Type,
+        isVat: database.IsVat,
+        docSEQ: database.Doc_SEQ,
+        creditTerm: database.CreditTerm,
+        creditTerm1Day: database.CreditTerm1Day,
+        creditTerm1Remark: database.CreditTerm1Remark,
+        creditTerm2Remark: database.CreditTerm2Remark,
+        accCode: database.ACC_Code,
+        empName: database.EmpName,
+        createdDate: setCreateDateTime(database.Created_Date || null),
+        createdByName: database.Created_By_Name,
+        createdById: database.Created_By_Id,
+        updateDate: setCreateDateTime(new Date()),
+        updateByName: window.localStorage.getItem('name'),
+        updateById: window.localStorage.getItem('emp_id'),
+        approvedDate: setCreateDateTime(database.Approved_Date || null),
+        approvedByName: database.Approved_By_Name,
+        approvedById: database.Approved_By_Id,
+        cancelDate: setCreateDateTime(database.Cancel_Date || null),
+        cancelByName: database.Cancel_By_Name,
+        cancelById: database.Cancel_By_Id,
+        approvedMemo: database.Approved_Memo,
+        printedStatus: database.Printed_Status,
+        printedDate: setCreateDateTime(database.Printed_Date || null),
+        printedBy: database.Printed_By,
+    });
 
     const handleSubmit = async () => {
         try {
@@ -242,9 +278,9 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
             const formData = {
                 pay_no: incrementedPayNo,
                 pay_date: formatStringDateToDate(formMasterList[0].payDate),
-                doc_due_date: formatStringDateToDate(formMasterList[0].docDueDate),
+                doc_due_date: formatStringDateToDate(formMasterList[0].datePay),
                 pay_status: parseInt("1", 10),
-                pay_type: null,
+                pay_type: parseInt(docRefType, 10),
                 ref_doc_id: null,
                 ref_doc: null,
                 ref_doc_date: null,
@@ -273,7 +309,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                 emp_name: null,
                 created_date: formatThaiDateUiToDate(formMasterList[0].createdDate),
                 created_by_name: window.localStorage.getItem('name'),
-                created_by_id: "1",
+                created_by_id: window.localStorage.getItem('emp_id'),
                 update_date: null,
                 update_by_name: null,
                 update_by_id: null,
@@ -318,8 +354,8 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
 
                     const formDetailData = {
                         pay_id: payId,
-                        rec_dt_id: null,
-                        rec_id: null,
+                        rec_dt_id: item.recDtId,
+                        rec_id: item.recId,
                         line: detailIndex,
                         item_id: item.itemId,
                         item_code: item.itemCode,
@@ -330,7 +366,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                         item_discount: parseCurrency(item.itemDiscount),
                         item_distype: item.itemDisType === '1' ? parseInt("1", 10) : parseInt("2", 10),
                         item_total: parseCurrency(item.itemTotal),
-                        item_status: item.itemStatus,
+                        item_status: parseInt("1", 10),
                         wh_id: parseInt(item.whId, 10),
                         zone_id: parseInt("1", 10),
                         lt_id: parseInt("1", 10),
@@ -338,6 +374,10 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                     };
 
                     detailIndex++;
+
+                    if (parseInt(docRefType, 10) === 3) {
+                        handleUpdateDepos(item);
+                    }
 
                     return Axios.post(`${process.env.REACT_APP_API_URL}/api/create-pay-d`, formDetailData, {
                         headers: { key: process.env.REACT_APP_ANALYTICS_KEY }
@@ -372,9 +412,9 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                     let formData = {
                         pay_no: incrementedPayNo,
                         pay_date: formatStringDateToDate(formMasterData.payDate),
-                        doc_due_date: formatStringDateToDate(formMasterData.docDueDate),
+                        doc_due_date: formatStringDateToDate(formMasterData.datePay),
                         pay_status: parseInt("1", 10),
-                        pay_type: null,
+                        pay_type: parseInt(docRefType, 10),
                         ref_doc_id: refDocID,
                         ref_doc: refDoc,
                         ref_doc_date: formatThaiDateUiToDate(refDocDate),
@@ -403,7 +443,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                         emp_name: null,
                         created_date: formatThaiDateUiToDate(formMasterData.createdDate),
                         created_by_name: window.localStorage.getItem('name'),
-                        created_by_id: "1",
+                        created_by_id: window.localStorage.getItem('emp_id'),
                         update_date: formMasterData.updateDate,
                         update_by_name: formMasterData.updateByName,
                         update_by_id: formMasterData.updateById,
@@ -444,8 +484,8 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
 
                             let formDetailData = {
                                 pay_id: payId,
-                                rec_dt_id: null,
-                                rec_id: null,
+                                rec_dt_id: item.recDtId,
+                                rec_id: item.recId,
                                 line: detailIndex,
                                 item_id: item.itemId,
                                 item_code: item.itemCode,
@@ -465,6 +505,10 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
 
                             detailIndex++;
 
+                            if (parseInt(docRefType, 10) === 3) {
+                                handleUpdateDepos(item);
+                            }
+
                             return Axios.post(`${process.env.REACT_APP_API_URL}/api/create-pay-d`, formDetailData, {
                                 headers: { key: process.env.REACT_APP_ANALYTICS_KEY }
                             });
@@ -482,6 +526,27 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
             console.error('เกิดข้อผิดพลาด:', error);
             getAlert("FAILED", "เกิดข้อผิดพลาดในการบันทึกข้อมูล");
         }
+    };
+
+    // ฟังก์ชั่นอัปเดต DEPOSIT ลบรายการออกตามจำนวนที่จ่าย
+    const handleUpdateDepos = async (item) => {
+        // // => ต้องลบ Item_Qty และ Update Item_Total
+        // const deposDetailList = await getByDocId("DEPOS_D", item.docId, `ORDER BY Line ASC`);
+        // let deposDetail = deposDetailList.find(depos => depos.Item_Id === item.itemId);
+
+        // // => ให้ปรับจำนวนสินค้าตามที่จ่าย
+        // let newItemQty = parseInt(deposDetail.Item_Qty, 10) - parseInt(item.itemQty, 10);
+
+        // // อัพเดทจำนวนที่คำนวณใหม่ (โดยการ Where ด้วย Doc_Id)
+        // await updateQty(
+        //     'DEPOS_D',
+        //     `Item_Qty = ${newItemQty}, Item_Total = ${item.Item_Total}`,
+        //     `WHERE Doc_Id = ${item.docId} AND Item_Id = ${item.itemId} AND Item_Status = 1`
+        // );
+
+        // // แต่ถ้าจ่ายครบทั้งใบมัดจำแล้ว จะต้องให้ปิดใบมัดจำทันที
+        // if (parseInt(item.itemQty, 10) === parseInt(deposDetail.Item_Qty, 10)) {
+        // }
     };
 
     // ฟังก์ชั่นเพิ่มค่า PayNo ด้วย index
@@ -592,7 +657,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
         setGrandTotal(0);
         setIsVatChecked(false);
         setVatAmount(0);
-        setDocTypeRef(value);
+        setDocRefType(value);
     };
 
     // ฟังก์ชันสำหรับจัดการการเปลี่ยนแปลงของสถานะจ่าย
@@ -703,10 +768,6 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
     const handleRecClose = () => setShowRecModal(false);
     const onRowSelectRec = async (recSelected) => {
         try {
-            // เคลียร์ค่าใน formMasterList และ formDetailList
-            setFormMasterList([payMasterModel()]);
-            setFormDetailList([]);
-
             // ค้นหาข้อมูลที่ตรงกับ recSelected.Rec_No ใน REC_H และ AP_ID ใน apDataList
             const [getAllRecH, getAllItem] = await Promise.all([
                 getAllData('API_0301_REC_H', 'ORDER BY Rec_No DESC'),
@@ -732,6 +793,8 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
 
                 return {
                     ...payDetailModel(index + 1),
+                    recDtId: itemSelected.DT_Id,
+                    recId: itemSelected.Rec_ID,
                     line: itemSelected.Line,
                     itemId: itemSelected.Item_Id,
                     recNo: itemSelected.Rec_No,
@@ -854,13 +917,117 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
             }
 
             handleRecClose();
-            onRowSelectRec(recSelected)
+
+            // เคลียร์ค่าใน formMasterList และ formDetailList
+            setFormMasterList([payMasterModel()]);
+            setFormDetailList([]);
+
+            onRowSelectRec(recSelected);
 
             // แจ้งเตือนผู้ใช้ว่าการเลือกสำเร็จ
             getAlert("OK", "การเลือกใบรับสินค้าสำเร็จ");
         } catch (error) {
             console.error("Error in confirming receipt selection:", error);
             getAlert("FAILED", "เกิดข้อผิดพลาดในการเลือกใบรับสินค้า");
+        }
+    };
+
+    // SET DEPOS
+    const [showDeposModal, setShowDeposModal] = useState(false);
+    const handleDeposShow = () => setShowDeposModal(true);
+    const handleDeposClose = () => setShowDeposModal(false);
+    const onRowSelectDepos = async (deposSelected) => {
+        try {
+            // เคลียร์ค่าใน formMasterList และ formDetailList
+            setFormMasterList([payMasterModel()]);
+            setFormDetailList([]);
+
+            // ค้นหารายการใบมัดจำ
+            const [findDeposMaster] = await Promise.all([
+                getAllData('DEPOS_H', ''),
+            ]);
+            const fromDeposDatabase = findDeposMaster.find(depos => depos.Doc_No === deposSelected.Doc_No);
+
+            if (!fromDeposDatabase) {
+                throw new Error("ไม่พบข้อมูลเอกสาร");
+            }
+
+            // ฟังก์ชันเพื่อสร้างโมเดลใหม่สำหรับแต่ละแถวและคำนวณ itemTotal
+            const createNewRow = (index, itemSelected) => {
+                const itemQty = Number(itemSelected.Item_Qty) || 0;
+                const itemPriceUnit = Number(itemSelected.Item_Price_Unit) || 0;
+                const itemDiscount = Number(itemSelected.Item_Discount) || 0;
+                let itemTotal = itemQty * itemPriceUnit;
+
+                if (itemSelected.Item_DisType === 2) {
+                    itemTotal -= (itemDiscount / 100) * itemTotal; // ลดตามเปอร์เซ็นต์
+                } else {
+                    itemTotal -= itemDiscount; // ลดตามจำนวนเงิน
+                }
+
+                return {
+                    ...payDetailModel(index + 1),
+                    docId: itemSelected.Doc_ID,
+                    line: itemSelected.Line,
+                    itemId: itemSelected.Item_Id,
+                    recNo: itemSelected.Rec_No,
+                    itemCode: itemSelected.Item_Code,
+                    itemName: itemSelected.Item_Name,
+                    itemQty,
+                    itemUnit: itemSelected.Item_Unit,
+                    itemPriceUnit: formatCurrency(itemPriceUnit),
+                    itemDiscount: formatCurrency(itemDiscount),
+                    itemDisType: String(itemSelected.Item_DisType),
+                    itemTotal,
+                    itemStatus: itemSelected.Item_Status,
+                    whId: itemSelected.WH_ID,
+                    whName: itemSelected.WH_Name,
+                    zoneId: itemSelected.Zone_ID,
+                    ltId: itemSelected.LT_ID,
+                    dsSeq: itemSelected.DS_SEQ,
+                };
+            };
+
+            // ค้นหาข้อมูลของ Detail ด้วย Doc_ID
+            const fromDeposDetail = await getByDocId('DEPOS_D', fromDeposDatabase.Doc_Id, `AND Item_Status = 1 ORDER BY Line ASC`);
+
+            if (fromDeposDetail.length > 0) {
+                const newFormDetails = fromDeposDetail.map((item, index) => createNewRow(formDetailList.length + index, item));
+                setFormDetailList(newFormDetails);
+                setFormMasterList([{
+                    // สำหรับตารางจ่าย
+                    datePay: formatThaiDateUi(moment()),
+                    //amountPay: 0,
+
+                    // ข้อมูลทั่วไป
+                    payNo: maxPayNo,
+                    payDate: formatThaiDateUi(moment()),
+                    docDueDate: formatThaiDateUi(moment()),
+                    refDoc: deposSelected.Doc_No,
+                    refDocDate: formatThaiDateUi(deposSelected.Doc_Date || null),
+                    transportType: deposSelected.Transport_Type,
+                    apID: deposSelected.AR_ID,
+                    apCode: deposSelected.AR_Code,
+                    apName: deposSelected.AR_Name,
+                    discountValue: deposSelected.Discount_Value,
+                    discountValueType: deposSelected.Discount_Value_Type,
+                    isVat: deposSelected.IsVat,
+                    ccreatedDate: setCreateDateTime(deposSelected.Created_Date || null),
+                    createdByName: deposSelected.Created_By_Name,
+                    createdById: deposSelected.Created_By_Id,
+                    updateDate: setCreateDateTime(new Date()),
+                    updateByName: window.localStorage.getItem('name'),
+                    updateById: window.localStorage.getItem('emp_id'),
+                    approvedDate: setCreateDateTime(deposSelected.Approved_Pay_Date || null),
+                    approvedByName: deposSelected.Approved_Pay_By_Name,
+                    approvedById: deposSelected.Approved_Pay_By_Id,
+                    printedStatus: deposSelected.Printed_Status
+                }]);
+            }
+
+            handleDeposClose(); // ปิด modal หลังจากเลือก
+        } catch (error) {
+            getAlert("FAILED", error);
         }
     };
 
@@ -988,10 +1155,12 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
         setGrandTotal(grandTotal);
 
         // Default ตามรวมทั้งสิ้น
-        const formattedValue = formatCurrency(grandTotal);
-        const updatedList = [...formMasterList];
-        updatedList[0].amountPay = formattedValue;
-        setFormMasterList(updatedList);
+        if (mode !== 'U') {
+            const formattedValue = formatCurrency(grandTotal);
+            const updatedList = [...formMasterList];
+            updatedList[0].amountPay = formattedValue;
+            setFormMasterList(updatedList);
+        }
     }, [subFinal, vatAmount]);
 
     const [showModalDatePicker, setShowModalDatePicker] = useState(false);
@@ -1006,11 +1175,16 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
 
     return (
         <>
-            <Breadcrumbs page={maxDocNo} items={[
-                { name: 'จัดซื้อสินค้า', url: '/purchase' },
-                { name: name, url: '/payment-voucher' },
-                { name: mode === 'U' ? "เรียกดู" + name : "สร้าง" + name, url: '#' },
-            ]} />
+            <Breadcrumbs page={maxPayNo}
+                isShowStatus={mode === 'U'}
+                statusName={statusName}
+                statusColour={statusColour}
+                items={[
+                    { name: 'จัดซื้อสินค้า', url: '/purchase' },
+                    { name: name, url: '/payment-voucher' },
+                    { name: mode === 'U' ? "เรียกดู" + name : "สร้าง" + name, url: '#' },
+                ]}
+            />
             <div className="row mt-1">
                 <div className="col-3">
                     <div className="d-flex align-items-center">
@@ -1042,7 +1216,10 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                                 onChange={handleChangeMasterList}
                                 disabled={true}
                             />
-                            <button className="btn btn-outline-secondary" onClick={handleApShow} disabled={docRefType === '1' ? true : false}>
+                            <button
+                                className="btn btn-outline-secondary"
+                                onClick={handleApShow}
+                                disabled={docRefType === '1' || docRefType === '3' || mode === 'U' ? true : false}>
                                 <i className="fas fa-search"></i>
                             </button>
                         </div>
@@ -1074,9 +1251,10 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                         <label className="me-2">เอกสารอ้างอิง</label>
                         <select
                             name="payType"
-                            value={formMasterList.docRefType}
+                            value={formMasterList[0]?.docRefType}
                             className="form-select form-control input-spacing"
-                            onChange={(e) => handleChangePayType(e.target.value)}>
+                            onChange={(e) => handleChangePayType(e.target.value)}
+                            disabled={mode === 'U'}>
                             <option value="1">จ่ายตามใบรับสินค้า</option>
                             <option value="2">จ่ายเฉพาะรายการ</option>
                             <option value="3">จ่ายตามใบมัดจำ</option>
@@ -1122,7 +1300,18 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                                 onChange={handleChangeMasterList}
                                 disabled={true}
                             />
-                            <button className="btn btn-outline-secondary" onClick={handleRecShow} hidden={docRefType === '1' ? false : true}>
+                            <button
+                                className="btn btn-outline-secondary"
+                                onClick={handleRecShow}
+                                hidden={docRefType === '1' ? false : true}
+                                disabled={mode === 'U'}>
+                                <i className="fas fa-search"></i>
+                            </button>
+                            <button
+                                className="btn btn-outline-secondary"
+                                onClick={handleDeposShow}
+                                hidden={docRefType === '3' ? false : true}
+                                disabled={mode === 'U'}>
                                 <i className="fas fa-search"></i>
                             </button>
                         </div>
@@ -1131,6 +1320,12 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             handleRecClose={handleRecClose}
                             recDataList={recDataList}
                             onConfirmRecSelection={onConfirmRecSelection}
+                        />
+                        <DeposModal
+                            showDeposModal={showDeposModal}
+                            handleDeposClose={handleDeposClose}
+                            deposDataList={deposDataList}
+                            onRowSelectDepos={onRowSelectDepos}
                         />
                     </div>
                 </div>
@@ -1215,9 +1410,9 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             name="docType"
                             value={formMasterList[0]?.docType}
                             onChange={handleChangeMasterList}
-                            disabled={docRefType === '1'}
+                            disabled={docRefType === '1' || docRefType === '3'}
                         >
-                            {docRefType !== '1' && tbDocType.map((docType) => (
+                            {docRefType === '2' && tbDocType.map((docType) => (
                                 <option key={docType.DocType_Id} value={docType.DocType_Id}>
                                     {docType.DocType_Name}
                                 </option>
@@ -1259,10 +1454,10 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             name="docFor"
                             value={formMasterList.docFor}
                             onChange={handleChangeMasterList}
-                            disabled={docRefType === '1'}
+                            disabled={docRefType === '1' || docRefType === '3'}
                             className="form-select form-control input-spacing"
                         >
-                            {docRefType !== '1' && (
+                            {docRefType === '2' && (
                                 <>
                                     <option value="1">ซื้อมาเพื่อใช้</option>
                                     <option value="2">ซื้อมาเพื่อขาย</option>
@@ -1291,12 +1486,12 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                         <label>Due Date</label>
                         <Datetime
                             className="input-spacing-input-date"
-                            name="docDueDate"
-                            value={formMasterList[0]?.docDueDate || null}
-                            onChange={(date) => handleChangeDateMasterList(date, 'docDueDate', 0)}
+                            name="datePay"
+                            value={formMasterList[0]?.datePay || null}
+                            onChange={(date) => handleChangeDateMasterList(date, 'datePay', 0)}
                             dateFormat="DD-MM-YYYY"
                             timeFormat={false}
-                            inputProps={{ readOnly: true, disabled: mode === 'U' }}
+                            inputProps={{ readOnly: true, disabled: true }}
                         />
                     </div>
                 </div>
@@ -1594,7 +1789,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                                                 type="button"
                                                 className="btn custom-button"
                                                 onClick={handleItemShow}
-                                                hidden={docRefType === '1' ? true : false}>
+                                                hidden={docRefType === '1' || docRefType === '3' ? true : false}>
                                                 <i className="fa fa-plus"></i> เพิ่มรายการ
                                             </button>
                                         </div>
@@ -1610,12 +1805,12 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                                                     <thead className="thead-dark">
                                                         <tr>
                                                             <th className="text-center" style={{ width: '2%' }}>#</th>
-                                                            {docRefType !== '2' && (
+                                                            {docRefType === '1' && (
                                                                 <th className="text-center" style={{ width: '8%' }}>
                                                                     เลขที่เอกสาร (REC)
                                                                 </th>
                                                             )}
-                                                            <th className="text-center" style={{ width: docRefType === '2' ? '12%' : '10%' }}>
+                                                            <th className="text-center" style={{ width: docRefType !== '1' ? '12%' : '10%' }}>
                                                                 รหัสสินค้า
                                                             </th>
                                                             <th className="text-center" style={{ width: docRefType === '1' ? '16%' : '20%' }}>
@@ -1681,8 +1876,8 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
 
                                                                 {/* ราคาต่อหน่วย */}
                                                                 <td className="text-end">
-                                                                    {docRefType === '1' ? (
-                                                                        <span>{formatCurrency(item.itemPriceUnit || 0)}</span>
+                                                                    {docRefType === '1' || docRefType === '3' ? (
+                                                                        <span>{item.itemPriceUnit || 0}</span>
                                                                     ) : (
                                                                         <input
                                                                             type="text"
@@ -1691,15 +1886,15 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                                                                             onChange={(e) => handleChangeDetail(index, 'itemPriceUnit', e.target.value)}
                                                                             onFocus={(e) => handleFocusDetail(index, 'itemPriceUnit')}
                                                                             onBlur={(e) => handleBlurDetail(index, 'itemPriceUnit', e.target.value)}
-                                                                            disabled={docRefType === '1' ? true : false}
+                                                                            disabled={docRefType === '1' || docRefType === '3' ? true : false}
                                                                         />
                                                                     )}
                                                                 </td>
 
                                                                 {/* ส่วนลด */}
                                                                 <td className="text-end">
-                                                                    {docRefType === '1' ? (
-                                                                        <span>{formatCurrency(item.itemDiscount || 0)}</span>
+                                                                    {docRefType === '1' || docRefType === '3' ? (
+                                                                        <span>{item.itemDiscount || 0}</span>
                                                                     ) : (
                                                                         <input
                                                                             type="text"
@@ -1708,21 +1903,21 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                                                                             onChange={(e) => handleChangeDetail(index, 'itemDiscount', e.target.value)}
                                                                             onFocus={(e) => handleFocusDetail(index, 'itemDiscount')}
                                                                             onBlur={(e) => handleBlurDetail(index, 'itemDiscount', e.target.value)}
-                                                                            disabled={docRefType === '1' ? true : false}
+                                                                            disabled={docRefType === '1' || docRefType === '3' ? true : false}
                                                                         />
                                                                     )}
                                                                 </td>
 
                                                                 {/* % */}
                                                                 <td className="text-center">
-                                                                    {docRefType === '1' ? (
+                                                                    {docRefType === '1' || docRefType === '3' ? (
                                                                         <span>{item.itemDisType === "1" ? "฿" : item.itemDisType === "2" ? "%" : ""}</span>
                                                                     ) : (
                                                                         <select
                                                                             className="form-select"
                                                                             value={item.itemDisType || ''}
                                                                             onChange={(e) => handleChangeDetail(index, 'itemDisType', e.target.value)}
-                                                                            disabled={docRefType === '1' ? true : false}
+                                                                            disabled={docRefType === '1' || docRefType === '3' ? true : false}
                                                                         >
                                                                             <option value="1">฿</option>
                                                                             <option value="2">%</option>
@@ -1759,7 +1954,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                                                                                 type="button"
                                                                                 className="btn btn-danger"
                                                                                 onClick={() => handleRemoveRow(index)}
-                                                                                disabled={docRefType === '1'}
+                                                                                disabled={docRefType === '1' || docRefType === '3'}
                                                                             >
                                                                                 ลบ
                                                                             </button>

@@ -10,7 +10,7 @@ import { getAlert } from '../../../../utils/SamuiUtils';
 function Main({ masterList, statusColours, name, onPageInsert, onRowSelected }) {
     const [dataMasterList, setDataMasterList] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage] = useState(12);
+    const [itemsPerPage] = useState(16);
     const [countWaitConfirm, setCountWaitConfirm] = useState(0);
     const [countConfirm, setCountConfirm] = useState(0);
     const [countDeposit, setCountDeposit] = useState(0);

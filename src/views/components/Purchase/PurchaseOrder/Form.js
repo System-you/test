@@ -63,6 +63,10 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
     const [isVatChecked, setIsVatChecked] = useState(false);
     const [vatAmount, setVatAmount] = useState(0);
 
+    // การแสดงสถานะใบ
+    const [statusName, setStatusName] = useState("");
+    const [statusColour, setStatusColour] = useState("");
+
     // สำหรับส่งไปหน้า FormAction
     const [docStatus, setDocStatus] = useState(null);
 
@@ -114,33 +118,46 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
 
     const getModelByNo = async (apDataList) => {
         try {
-            // ค้นหาข้อมูลที่ตรงกับใน AP_ID ใน apDataList
+            // ค้นหาข้อมูล PO_H ที่ตรงกับ Doc_No
             const [findMaster] = await Promise.all([
                 getAllData('PO_H', ''),
             ]);
             const fromDatabase = findMaster.find(po => po.Doc_No === maxDocNo);
 
-            // ค้นหาข้อมูลผู้ขายด้วย AP_ID
-            const [fromViewAp] = await Promise.all([
-                apDataList.find(ap => ap.AP_Id === fromDatabase.AP_ID)
-            ]);
+            if (!fromDatabase) {
+                throw new Error("ไม่พบข้อมูลเอกสาร");
+            }
+
+            // ค้นหาข้อมูลผู้ขายด้วย AP_ID จาก apDataList
+            const fromViewAp = apDataList.find(ap => ap.AP_Id === fromDatabase.AP_ID);
+
+            if (!fromViewAp) {
+                throw new Error("ไม่พบข้อมูลผู้ขาย");
+            }
 
             // SET สถานะใช้กับ FormAction
             setDocStatus(fromDatabase.Doc_Status);
 
-            if (!fromDatabase || !fromViewAp) {
-                throw new Error("Data not found");
-            };
+            // ค้นหาข้อมูล VIEW โดยใช้ Doc_No
+            const [findViewMaster] = await Promise.all([
+                getAllData('API_0201_PO_H', ''),
+            ]);
+            const fromView = findViewMaster.find(data => data.Doc_No === maxDocNo);
 
-            // ฟังก์ชันเพื่อสร้างโมเดลใหม่สำหรับแต่ละแถวและคำนวณ itemTotal
+            if (fromView) {
+                setStatusName(fromView.DocStatus_Name);
+                setStatusColour(fromView.DocStatus_Colour);
+            }
+
+            // ฟังก์ชันสร้างโมเดลใหม่สำหรับแต่ละแถวและคำนวณ itemTotal
             const createNewRow = (index, itemSelected) => {
                 const itemQty = Number(itemSelected.Item_Qty) || 0;
                 const itemPriceUnit = Number(itemSelected.Item_Price_Unit) || 0;
                 const itemDiscount = Number(itemSelected.Item_Discount) || 0;
-                const ItemDisType = String(itemSelected.Item_DisType);
+                const itemDisType = String(itemSelected.Item_DisType);
                 let itemTotal = itemQty * itemPriceUnit;
 
-                if (ItemDisType === '2') {
+                if (itemDisType === '2') {
                     itemTotal -= (itemDiscount / 100) * itemTotal; // ลดตามเปอร์เซ็นต์
                 } else {
                     itemTotal -= itemDiscount; // ลดตามจำนวนเงิน
@@ -158,7 +175,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                     itemUnit: itemSelected.Item_Unit,
                     itemPriceUnit: formatCurrency(itemPriceUnit),
                     itemDiscount: formatCurrency(itemDiscount),
-                    itemDisType: String(itemSelected.Item_DisType),
+                    itemDisType,
                     itemTotal,
                     itemRecQty: itemSelected.Item_REC_Qty,
                     itemRecBalance: itemSelected.Item_REC_Balance,
@@ -222,7 +239,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                     createdById: fromDatabase.Created_By_Id,
                     updateDate: setCreateDateTime(new Date()),
                     updateByName: window.localStorage.getItem('name'),
-                    updateById: "1",
+                    updateById: window.localStorage.getItem('emp_id'),
                     approvedDate: setCreateDateTime(fromDatabase.Approved_Date || null),
                     approvedByName: fromDatabase.Approved_By_Name,
                     approvedById: fromDatabase.Approved_By_Id,
@@ -241,10 +258,10 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                     apAdd3: fromViewAp.AP_Add3,
                     apProvince: fromViewAp.AP_Province,
                     apZipcode: fromViewAp.AP_Zipcode,
-                    apTaxNo: fromViewAp.AP_TaxNo
+                    apTaxNo: fromViewAp.AP_TaxNo,
                 });
 
-                setIsVatChecked(fromDatabase.IsVat === 1 ? true : false);
+                setIsVatChecked(fromDatabase.IsVat === 1);
 
                 const discountValueType = Number(fromDatabase.Discount_Value_Type);
                 if (!isNaN(discountValueType)) {
@@ -338,7 +355,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                 emp_name: formMasterList.empName,
                 created_date: formatThaiDateUiToDate(formMasterList.createdDate),
                 created_by_name: window.localStorage.getItem('name'),
-                created_by_id: "1",
+                created_by_id: window.localStorage.getItem('emp_id'),
                 update_date: null,
                 update_by_name: null,
                 update_by_id: null,
@@ -575,9 +592,9 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
             const formMasterData = {
                 doc_no: formMasterList.docNo,
                 doc_status: parseInt("13", 10),
-                cancel_date: formatThaiDateUiToDate(new Date()),
+                cancel_date: formatThaiDateUiToDate(getCreateDateTime()),
                 cancel_by_name: window.localStorage.getItem('name'),
-                cancel_by_id: "1",
+                cancel_by_id: window.localStorage.getItem('emp_id'),
             };
 
             // For Log PR_H
@@ -600,7 +617,6 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
             const prDetailList = await getByDocId("PR_D", formMasterList.refDocID, `ORDER BY Line ASC`);
             let hasRecBalance = false;
 
-            // Loop Item
             const detailPromises = formDetailList.map(async (item) => {
 
                 let prDetail = prDetailList.find(pr => pr.Item_Id === item.itemId);
@@ -1022,11 +1038,16 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
 
     return (
         <>
-            <Breadcrumbs page={maxDocNo} items={[
-                { name: 'จัดซื้อสินค้า', url: '/purchase' },
-                { name: name, url: '/purchase-order' },
-                { name: mode === 'U' ? "เรียกดู" + name : "สร้าง" + name, url: '#' },
-            ]} />
+            <Breadcrumbs page={maxDocNo}
+                isShowStatus={mode === 'U'}
+                statusName={statusName}
+                statusColour={statusColour}
+                items={[
+                    { name: 'จัดซื้อสินค้า', url: '/purchase' },
+                    { name: name, url: '/purchase-order' },
+                    { name: mode === 'U' ? "เรียกดู" + name : "สร้าง" + name, url: '#' },
+                ]}
+            />
             <div className="row mt-1">
                 <div className="col-3">
                     <div className="d-flex align-items-center">
@@ -1058,7 +1079,10 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                                 onChange={handleChangeMaster}
                                 disabled={true}
                             />
-                            <button className="btn btn-outline-secondary" onClick={handleApShow} hidden={true}>
+                            <button
+                                className="btn btn-outline-secondary"
+                                onClick={handleApShow}
+                                hidden={true}>
                                 <i className="fas fa-search"></i>
                             </button>
                         </div>

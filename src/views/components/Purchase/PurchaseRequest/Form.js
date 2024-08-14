@@ -34,6 +34,7 @@ import {
     formatThaiDateUi,
     formatThaiDateUiToDate,
     getMaxDocNo,
+    getCreateDateTime,
     setCreateDateTime,
     deleteDetail
 } from '../../../../utils/SamuiUtils';
@@ -55,6 +56,10 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
     const [grandTotal, setGrandTotal] = useState(0);
     const [isVatChecked, setIsVatChecked] = useState(false);
     const [vatAmount, setVatAmount] = useState(0);
+
+    // การแสดงสถานะใบ
+    const [statusName, setStatusName] = useState("");
+    const [statusColour, setStatusColour] = useState("");
 
     useEffect(() => {
         initialize();
@@ -98,30 +103,40 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
 
     const getModelByNo = async (apDataList) => {
         try {
-            // ค้นหาข้อมูลที่ตรงกับใน AP_ID ใน apDataList
+            // ดึงข้อมูลเอกสารจาก PR_H
             const [findMaster] = await Promise.all([
                 getAllData('PR_H', ''),
             ]);
             const fromDatabase = findMaster.find(pr => pr.Doc_No === maxDocNo);
 
-            // ค้นหาข้อมูลผู้ขายด้วย AP_ID
-            const [fromViewAp] = await Promise.all([
-                apDataList.find(ap => ap.AP_Id === fromDatabase.AP_ID)
-            ]);
+            if (!fromDatabase) {
+                throw new Error("ไม่พบข้อมูลเอกสาร");
+            }
 
-            if (!fromDatabase || !fromViewAp) {
-                throw new Error("Data not found");
-            };
+            // ดึงข้อมูลผู้ขายจาก apDataList โดยใช้ AP_ID
+            const fromViewAp = apDataList.find(ap => ap.AP_Id === fromDatabase.AP_ID);
+
+            if (!fromViewAp) {
+                throw new Error("ไม่พบข้อมูลผู้ขาย");
+            }
+
+            // ดึงข้อมูลจาก VIEW API_0101_PR_H
+            const [findViewMaster] = await Promise.all([
+                getAllData('API_0101_PR_H', ''),
+            ]);
+            const fromView = findViewMaster.find(data => data.Doc_No === maxDocNo);
+            setStatusName(fromView.DocStatus_Name);
+            setStatusColour(fromView.docsetcolour);
 
             // ฟังก์ชันเพื่อสร้างโมเดลใหม่สำหรับแต่ละแถวและคำนวณ itemTotal
             const createNewRow = (index, itemSelected) => {
                 const itemQty = Number(itemSelected.Item_Qty) || 0;
                 const itemPriceUnit = Number(itemSelected.Item_Price_Unit) || 0;
                 const itemDiscount = Number(itemSelected.Item_Discount) || 0;
-                const ItemDisType = String(itemSelected.Item_DisType);
+                const itemDisType = String(itemSelected.Item_DisType);
                 let itemTotal = itemQty * itemPriceUnit;
 
-                if (ItemDisType === '2') {
+                if (itemDisType === '2') {
                     itemTotal -= (itemDiscount / 100) * itemTotal; // ลดตามเปอร์เซ็นต์
                 } else {
                     itemTotal -= itemDiscount; // ลดตามจำนวนเงิน
@@ -139,8 +154,8 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                     itemUnit: itemSelected.Item_Unit,
                     itemPriceUnit: formatCurrency(itemPriceUnit),
                     itemDiscount: formatCurrency(itemDiscount),
-                    itemDisType: String(itemSelected.Item_DisType),
-                    itemTotal: itemTotal,
+                    itemDisType,
+                    itemTotal,
                     itemStatus: itemSelected.Item_Status,
                     whId: itemSelected.WH_ID,
                     whName: itemSelected.WH_Name,
@@ -155,7 +170,6 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
 
             if (fromDetail.length > 0) {
                 const newFormDetails = fromDetail.map((item, index) => createNewRow(formDetailList.length + index, item));
-
                 setFormDetailList(newFormDetails);
 
                 setFormMasterList({
@@ -199,7 +213,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                     createdById: fromDatabase.Created_By_Id,
                     updateDate: setCreateDateTime(new Date()),
                     updateByName: window.localStorage.getItem('name'),
-                    updateById: "1",
+                    updateById: window.localStorage.getItem('emp_id'),
                     approvedDate: setCreateDateTime(fromDatabase.Approved_Date || null),
                     approvedByName: fromDatabase.Approved_By_Name,
                     approvedById: fromDatabase.Approved_By_Id,
@@ -211,7 +225,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                     printedDate: setCreateDateTime(fromDatabase.Printed_Date || null),
                     printedBy: fromDatabase.Printed_By,
 
-                    // แสดงรายชื่อผู้ขาย
+                    // ข้อมูลผู้ขาย
                     apName: fromViewAp.AP_Name,
                     apAdd1: fromViewAp.AP_Add1,
                     apAdd2: fromViewAp.AP_Add2,
@@ -221,7 +235,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                     apTaxNo: fromViewAp.AP_TaxNo
                 });
 
-                setIsVatChecked(fromDatabase.IsVat === 1 ? true : false);
+                setIsVatChecked(fromDatabase.IsVat === 1);
 
                 const discountValueType = Number(fromDatabase.Discount_Value_Type);
                 if (!isNaN(discountValueType)) {
@@ -313,7 +327,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                 emp_name: formMasterList.empName,
                 created_date: formatThaiDateUiToDate(formMasterList.createdDate),
                 created_by_name: window.localStorage.getItem('name'),
-                created_by_id: "1",
+                created_by_id: window.localStorage.getItem('emp_id'),
                 update_date: null,
                 update_by_name: null,
                 update_by_id: null,
@@ -537,9 +551,9 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
             const formMasterData = {
                 doc_no: formMasterList.docNo,
                 doc_status: parseInt("13", 10),
-                cancel_date: formatThaiDateUiToDate(new Date()),
+                cancel_date: formatThaiDateUiToDate(getCreateDateTime()),
                 cancel_by_name: window.localStorage.getItem('name'),
-                cancel_by_id: "1",
+                cancel_by_id: window.localStorage.getItem('emp_id'),
             };
 
             // For Log PR_H
@@ -731,6 +745,9 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
     return (
         <>
             <Breadcrumbs page={maxDocNo}
+                isShowStatus={mode === 'U'}
+                statusName={statusName}
+                statusColour={statusColour}
                 items={[
                     { name: 'จัดซื้อสินค้า', url: '/purchase' },
                     { name: name, url: '/purchase-request' },
@@ -771,7 +788,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             <button
                                 className="btn btn-outline-secondary"
                                 onClick={handleApShow}
-                                disabled={formMasterList.docStatus === 1 ? false : true}>
+                                disabled={formMasterList.docStatus === 1 || mode === 'U' ? false : true}>
                                 <i className="fas fa-search"></i>
                             </button>
                         </div>

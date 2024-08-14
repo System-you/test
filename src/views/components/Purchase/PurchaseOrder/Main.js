@@ -11,7 +11,7 @@ function Main({ masterList, detailList, statusColours, statusPaidColours, status
     const [dataMasterList, setDataMasterList] = useState([]);
     const [dataDetailList, setDataDetailList] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage] = useState(12);
+    const [itemsPerPage] = useState(16);
 
     // StatusColours
     const [countWaitApprove, setCountWaitApprove] = useState(0);

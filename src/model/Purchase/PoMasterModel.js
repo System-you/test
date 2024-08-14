@@ -47,7 +47,7 @@ export const poMasterModel = () => {
         empName: null,
         createdDate: getCreateDateTime(),
         createdByName: window.localStorage.getItem('name'),
-        createdById: null,
+        createdById: window.localStorage.getItem('emp_id'),
         updateDate: null,
         updateByName: null,
         updateById: null,

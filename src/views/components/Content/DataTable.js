@@ -23,25 +23,29 @@ const DataTable = ({ currentItems, onRowSelected, currentPage, handlePageChange,
     return (
         <div className="col-11">
             <div className="card">
-                <div className="table-responsive" style={{ maxHeight: '600px', overflowY: 'auto' }}>
+                <div className="table-responsive" style={{ maxHeight: '700px', overflowY: 'auto' }}>
                     <table id="basic-datatables" className="table table-striped table-hover">
                         <thead className="thead-dark">
                             <tr>
                                 <th className="text-center" style={{ width: '5%' }}>เลขที่เอกสาร</th>
                                 <th className="text-center" style={{ width: '8%' }}>ประเภทเอกสาร</th>
-                                <th className="text-center" style={{ width: '10%' }}>สถานะเอกสาร</th>
-
+                                <th hidden={window.location.pathname === '/payment-voucher' ? true : false}
+                                    className="text-center" style={{ width: '10%' }}>สถานะเอกสาร</th>
                                 <th hidden={window.location.pathname === '/purchase-order' ? false : true}
                                     className="text-center"
                                     style={{ width: '10%' }}>
                                     สถานะรับสินค้า
                                 </th>
-
                                 <th className="text-center" style={{ width: '6%' }}>วันที่เอกสาร</th>
-                                <th className="text-center" style={{ width: '6%' }}>รหัสเจ้าหนี้</th>
-                                <th className="text-center" style={window.location.pathname === '/purchase-order'
-                                    ? { width: '25%' } : { width: '35%' }}>ชื่อเจ้าหนี้</th>
                                 <th className="text-center" style={{ width: '6%' }}>Due Date</th>
+                                <th className="text-center" style={{ width: '6%' }}>รหัสเจ้าหนี้</th>
+                                <th
+                                    className="text-center"
+                                    style={window.location.pathname === '/purchase-order'
+                                        || window.location.pathname !== '/payment-voucher'
+                                        ? { width: '25%' } : { width: '35%' }}>
+                                    ชื่อเจ้าหนี้
+                                </th>
                                 <th className="text-center" style={{ width: '8%' }}>ยอดรวม</th>
                                 <th className="text-center" style={{ width: '8%' }}>สร้างรายการ โดย</th>
                                 <th className="text-center" style={{ width: '8%' }}>แก้ไขล่าสุด โดย</th>
@@ -53,7 +57,8 @@ const DataTable = ({ currentItems, onRowSelected, currentPage, handlePageChange,
                                     <tr onClick={() => onRowSelected(data[fieldMappings.no])}
                                         key={data[fieldMappings.no] || index + 1} style={{ cursor: 'pointer' }}>
                                         <td className="text-left">{data[fieldMappings.no] || "-"}</td>
-                                        <td className="text-center">{data[fieldMappings.typeName] || "-"}</td>
+                                        <td hidden={window.location.pathname === '/payment-voucher' ? true : false}
+                                            className="text-center">{data[fieldMappings.typeName] || "-"}</td>
                                         <td className="text-left">
                                             {data[fieldMappings.statusName] ? (
                                                 <button
@@ -91,9 +96,9 @@ const DataTable = ({ currentItems, onRowSelected, currentPage, handlePageChange,
                                             )}
                                         </td>
                                         <td className="text-center">{data[fieldMappings.date] ? formatDate(data[fieldMappings.date]) : "-"}</td>
+                                        <td className="text-center">{data[fieldMappings.dueDate] ? formatDate(data[fieldMappings.dueDate]) : "-"}</td>
                                         <td className="text-center">{data[fieldMappings.apCode] || "-"}</td>
                                         <td className="text-left">{data[fieldMappings.apName] || "-"}</td>
-                                        <td className="text-center">{data[fieldMappings.dueDate] ? formatDate(data[fieldMappings.dueDate]) : "-"}</td>
                                         <td className="text-end">
                                             {formatCurrency(data[fieldMappings.netTotal] || 0.00)}
                                         </td>

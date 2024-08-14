@@ -10,7 +10,6 @@ import moment from 'moment';
 import Breadcrumbs from '../../Breadcrumbs';
 import ArModal from '../../Modal/ArModal';
 import ItemTable from '../../Content/ItemTable';
-import Summary from '../../Footer/Summary';
 import FormAction from '../../Actions/FormAction';
 
 // Model
@@ -23,7 +22,6 @@ import {
     getByDocId,
     getDocType,
     getTransType,
-    getViewAp,
     getViewItem,
     getAlert,
     formatCurrency,
@@ -34,6 +32,7 @@ import {
     formatThaiDateUi,
     formatThaiDateUiToDate,
     getMaxDocNo,
+    getCreateDateTime,
     setCreateDateTime,
     deleteDetail
 } from '../../../../utils/SamuiUtils';
@@ -55,6 +54,13 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
     const [grandTotal, setGrandTotal] = useState(0);
     const [isVatChecked, setIsVatChecked] = useState(false);
     const [vatAmount, setVatAmount] = useState(0);
+
+    // การแสดงสถานะใบ
+    const [statusName, setStatusName] = useState("");
+    const [statusColour, setStatusColour] = useState("");
+
+    // สำหรับส่งไปหน้า FormAction
+    const [docStatus, setDocStatus] = useState(null);
 
     useEffect(() => {
         initialize();
@@ -98,34 +104,41 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
 
     const getModelByNo = async (arDataList) => {
         try {
-            // ค้นหาข้อมูลที่ตรงกับใน AP_ID ใน apDataList
-            const [findMaster] = await Promise.all([
-                getAllData('DEPOS_H', ''),
-            ]);
+            // ค้นหาข้อมูลที่ตรงกับ AP_ID ใน apDataList
+            const findMaster = await getAllData('DEPOS_H', ``);
             const fromDatabase = findMaster.find(depos => depos.Doc_No === maxDocNo);
 
-            // ค้นหาข้อมูลผู้ขายด้วย AP_ID
-            const [fromViewAr] = await Promise.all([
-                arDataList.find(ap => ap.AR_Id === fromDatabase.AR_ID)
-            ]);
+            if (!fromDatabase) {
+                throw new Error("ไม่พบข้อมูลเอกสาร");
+            }
 
-            if (!fromDatabase || !fromViewAr) {
-                throw new Error("Data not found");
-            };
+            // ค้นหาข้อมูลผู้ขายด้วย AP_ID
+            const fromViewAr = arDataList.find(ap => ap.AR_Id === fromDatabase.AR_ID);
+
+            if (!fromViewAr) {
+                throw new Error("ไม่พบข้อมูลลูกค้า");
+            }
+
+            // SET สถานะใช้กับ FormAction
+            setDocStatus(fromDatabase.Doc_Status);
+
+            // ค้นหาข้อมูล VIEW
+            const findViewMaster = await getAllData('API_0501_DEPOS_H', '');
+            const fromView = findViewMaster.find(data => data.Doc_No === maxDocNo);
+            setStatusName(fromView.DocStatus_Name);
+            setStatusColour(fromView.docsetcolour);
 
             // ฟังก์ชันเพื่อสร้างโมเดลใหม่สำหรับแต่ละแถวและคำนวณ itemTotal
             const createNewRow = (index, itemSelected) => {
                 const itemQty = Number(itemSelected.Item_Qty) || 0;
                 const itemPriceUnit = Number(itemSelected.Item_Price_Unit) || 0;
                 const itemDiscount = Number(itemSelected.Item_Discount) || 0;
-                const ItemDisType = String(itemSelected.Item_DisType);
+                const itemDisType = String(itemSelected.Item_DisType);
                 let itemTotal = itemQty * itemPriceUnit;
 
-                if (ItemDisType === '2') {
-                    itemTotal -= (itemDiscount / 100) * itemTotal; // ลดตามเปอร์เซ็นต์
-                } else {
-                    itemTotal -= itemDiscount; // ลดตามจำนวนเงิน
-                }
+                itemTotal -= itemDisType === '2'
+                    ? (itemDiscount / 100) * itemTotal  // ลดตามเปอร์เซ็นต์
+                    : itemDiscount;  // ลดตามจำนวนเงิน
 
                 return {
                     ...deposDetailModel(index + 1),
@@ -139,8 +152,8 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                     itemUnit: itemSelected.Item_Unit,
                     itemPriceUnit: formatCurrency(itemPriceUnit),
                     itemDiscount: formatCurrency(itemDiscount),
-                    itemDisType: String(itemSelected.Item_DisType),
-                    itemTotal: itemTotal,
+                    itemDisType,
+                    itemTotal,
                     itemStatus: itemSelected.Item_Status,
                     whId: itemSelected.WH_ID,
                     whName: itemSelected.WH_Name,
@@ -198,10 +211,14 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                     createdById: fromDatabase.Created_By_Id,
                     updateDate: setCreateDateTime(new Date()),
                     updateByName: window.localStorage.getItem('name'),
-                    updateById: "1",
+                    updateById: window.localStorage.getItem('emp_id'),
+                    approvedDate: setCreateDateTime(fromDatabase.Approved_Date || null),
+                    approvedByName: fromDatabase.Approved_By_Name,
+                    approvedById: fromDatabase.Approved_By_Id,
                     cancelDate: setCreateDateTime(fromDatabase.Cancel_Date || null),
                     cancelByName: fromDatabase.Cancel_By_Name,
                     cancelById: fromDatabase.Cancel_By_Id,
+                    approvedMemo: fromDatabase.Approved_Memo,
                     printedStatus: fromDatabase.Printed_Status,
                     printedDate: setCreateDateTime(fromDatabase.Printed_Date || null),
                     printedBy: fromDatabase.Printed_By,
@@ -217,7 +234,6 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                     custMail: fromDatabase.Cust_Mail,
                     custConfirmMemo: fromDatabase.Cust_Confirm_Memo,
 
-                    // แสดงรายชื่อผู้ขาย
                     arName: fromViewAr.AR_Name,
                     arAdd1: fromViewAr.AR_Add1,
                     arAdd2: fromViewAr.AR_Add2,
@@ -227,12 +243,14 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                     arTaxNo: fromViewAr.AR_TaxNo
                 });
 
-                setIsVatChecked(fromDatabase.IsVat === 1 ? true : false);
+                setIsVatChecked(fromDatabase.IsVat === 1);
 
                 const discountValueType = Number(fromDatabase.Discount_Value_Type);
                 if (!isNaN(discountValueType)) {
                     setSelectedDiscountValueType(discountValueType.toString());
                 }
+
+                setSelectedDiscountValueType(String(fromDatabase.Discount_Value_Type));
             } else {
                 getAlert('FAILED', `ไม่พบข้อมูลที่ตรงกับเลขที่เอกสาร ${fromDatabase.Doc_No} กรุณาตรวจสอบและลองอีกครั้ง`);
             }
@@ -240,11 +258,6 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
             getAlert("FAILED", error.message || error);
         }
     };
-
-    // const handleCheckboxChange = (event) => {
-    //     const { name } = event.target;
-    //     setSelectedDiscountValueType(selectedDiscountValueType === name ? null : name);
-    // };
 
     const handleSubmit = async () => {
         try {
@@ -283,7 +296,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                 doc_date: formatStringDateToDate(formMasterList.docDate),
                 doc_due_date: formatStringDateToDate(formMasterList.docDueDate),
                 doc_status: parseInt("1", 10),
-                doc_code: parseInt("1", 10),
+                doc_code: parseInt("5", 10),
                 doc_type: parseInt(formMasterList.docType, 10),
                 doc_for: formMasterList.docFor,
                 ref_doc_id: formMasterList.refDocID,
@@ -314,7 +327,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                 emp_name: formMasterList.empName,
                 created_date: formatThaiDateUiToDate(formMasterList.createdDate),
                 created_by_name: window.localStorage.getItem('name'),
-                created_by_id: "1",
+                created_by_id: window.localStorage.getItem('emp_id'),
                 update_date: formMasterList.updateDate,
                 update_by_name: formMasterList.updateByName,
                 update_by_id: formMasterList.updateById,
@@ -434,7 +447,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                 doc_no: formMasterList.docNo,
                 doc_date: formatStringDateToDate(formMasterList.docDate),
                 doc_due_date: formatStringDateToDate(formMasterList.docDueDate),
-                doc_status: parseInt(formMasterList.docStatus, 10),
+                doc_status: parseInt(docStatus, 10),
                 doc_code: parseInt(formMasterList.docCode, 10),
                 doc_type: formMasterList.docType,
                 doc_for: formMasterList.docFor,
@@ -551,9 +564,9 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
             const formMasterData = {
                 doc_no: formMasterList.docNo,
                 doc_status: parseInt("13", 10),
-                cancel_date: formatThaiDateUiToDate(new Date()),
+                cancel_date: formatThaiDateUiToDate(getCreateDateTime()),
                 cancel_by_name: window.localStorage.getItem('name'),
-                cancel_by_id: "1",
+                cancel_by_id: window.localStorage.getItem('emp_id'),
             };
 
             // For Log DEPOS_H
@@ -561,6 +574,29 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
 
             // ส่งข้อมูลหลักไปยัง API
             const response = await Axios.post(`${process.env.REACT_APP_API_URL}/api/cancel-depos-h`, formMasterData, {
+                headers: { key: process.env.REACT_APP_ANALYTICS_KEY }
+            });
+
+            callInitialize();
+            getAlert(response.data.status, response.data.message);
+        } catch (error) {
+            getAlert("FAILED", error.response?.data?.message || error.message);
+        }
+    };
+
+    const handleApprovedPay = async () => {
+        try {
+            // ข้อมูลหลักที่จะส่งไปยัง API
+            const formMasterData = {
+                doc_no: formMasterList.docNo,
+                doc_status: parseInt("3", 10),
+                approved_pay_date: formatThaiDateUiToDate(getCreateDateTime()),
+                approved_pay_by_name: window.localStorage.getItem('name'),
+                approved_pay_by_id: window.localStorage.getItem('emp_id')
+            };
+
+            // ส่งข้อมูลหลักไปยัง API
+            const response = await Axios.post(`${process.env.REACT_APP_API_URL}/api/approved-pay-depos-h`, formMasterData, {
                 headers: { key: process.env.REACT_APP_ANALYTICS_KEY }
             });
 
@@ -653,11 +689,6 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                 arProvince: arSelected.AR_Province,
                 arZipcode: arSelected.AR_Zipcode,
                 arTaxNo: arSelected.AR_TaxNo,
-
-                // เพิ่มเติม (พี่แบงค์สั่งมา)
-                custName: arSelected.AR_Name,
-                custTel: arSelected.AR_Tel1,
-                custMail: null,
             });
 
             handleArClose(); // ปิด modal หลังจากเลือก
@@ -706,9 +737,6 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
         const newList = formDetailList.filter((_, i) => i !== index);
         setFormDetailList(newList);
     };
-    const handleVatChange = () => {
-        setIsVatChecked(prev => !prev);
-    };
 
     // การคำนวณยอดรวม (totalPrice)
     useEffect(() => {
@@ -718,16 +746,16 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
 
     // การคำนวณส่วนลด (receiptDiscount)
     useEffect(() => {
-        let discountValue = Number(formMasterList.discountValue || 0);
-        let receiptDiscount = 0;
+        // let discountValue = Number(formMasterList.discountValue || 0);
+        // let receiptDiscount = 0;
 
-        if (selectedDiscountValueType === '2') { // เปอร์เซ็นต์
-            receiptDiscount = (totalPrice / 100) * discountValue;
-        } else if (selectedDiscountValueType === '1') { // จำนวนเงิน
-            receiptDiscount = discountValue;
-        }
+        // if (selectedDiscountValueType === '2') { // เปอร์เซ็นต์
+        //     receiptDiscount = (totalPrice / 100) * discountValue;
+        // } else if (selectedDiscountValueType === '1') { // จำนวนเงิน
+        //     receiptDiscount = discountValue;
+        // }
 
-        setReceiptDiscount(receiptDiscount);
+        // setReceiptDiscount(receiptDiscount);
     }, [totalPrice, formMasterList.discountValue, selectedDiscountValueType]);
 
     // การคำนวณยอดหลังหักส่วนลด (subFinal)
@@ -738,8 +766,8 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
 
     // การคำนวณ VAT (vatAmount)
     useEffect(() => {
-        const vat = isVatChecked ? subFinal * 0.07 : 0;
-        setVatAmount(vat);
+        // const vat = isVatChecked ? subFinal * 0.07 : 0;
+        // setVatAmount(vat);
     }, [subFinal, isVatChecked]);
 
     // การคำนวณยอดรวมทั้งสิ้น (grandTotal)
@@ -751,6 +779,9 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
     return (
         <>
             <Breadcrumbs page={maxDocNo}
+                isShowStatus={mode === 'U'}
+                statusName={statusName}
+                statusColour={statusColour}
                 items={[
                     { name: 'จัดซื้อสินค้า', url: '/purchase' },
                     { name: name, url: '/deposit-document' },
@@ -758,7 +789,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                 ]}
             />
             <div className="row mt-1">
-                <div className="col-3">
+                <div className="col-3 text-left">
                     <div className="d-flex align-items-center">
                         <label>วันที่เอกสาร</label>
                         <Datetime
@@ -772,7 +803,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                         />
                     </div>
                 </div>
-                <div className="col-4">
+                <div className="col-3 text-center">
                     <div className="d-flex align-items-center">
                         <label>ลูกค้า</label>
                         <div className="input-group">
@@ -791,7 +822,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             <button
                                 className="btn btn-outline-secondary"
                                 onClick={handleArShow}
-                                disabled={formMasterList.docStatus === 1 ? false : true}>
+                                disabled={mode === 'U' ? true : false}>
                                 <i className="fas fa-search"></i>
                             </button>
                         </div>
@@ -803,7 +834,21 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                         onRowSelectAr={onRowSelectAr}
                     />
                 </div>
-                <div className="col-2" />
+                <div className="col-3 text-left">
+                    <div className="d-flex align-items-center">
+                        <label>ชื่อลูกค้า</label>
+                        <div className="input-group">
+                            <input
+                                type="text"
+                                className="form-control input-spacing"
+                                value={
+                                    (formMasterList.custName || '')
+                                }
+                                disabled={true}
+                            />
+                        </div>
+                    </div>
+                </div>
                 <div className="col-3 text-right">
                     <div className="d-flex align-items-center">
                         <label>วันที่สร้างเอกสาร</label>
@@ -818,7 +863,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                 </div>
             </div>
             <div className="row mt-1">
-                <div className="col-3">
+                <div className="col-3 text-left">
                     <div className="d-flex align-items-center">
                         <label>อ้างอิงเอกสาร</label>
                         <input
@@ -826,10 +871,11 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             className="form-control input-spacing"
                             name="refDoc"
                             value={formMasterList.refDoc || ''}
-                            onChange={handleChangeMaster} />
+                            onChange={handleChangeMaster}
+                            disabled={mode === 'U'} />
                     </div>
                 </div>
-                <div className="col-4">
+                <div className="col-3 text-center">
                     <div className="d-flex align-items-center">
                         <label>ที่อยู่</label>
                         <input
@@ -841,7 +887,21 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             disabled={true} />
                     </div>
                 </div>
-                <div className="col-2" />
+                <div className="col-3 text-left">
+                    <div className="d-flex align-items-center">
+                        <label>เบอร์ลูกค้า</label>
+                        <div className="input-group">
+                            <input
+                                type="text"
+                                className="form-control input-spacing"
+                                value={
+                                    (formMasterList.custTel || '')
+                                }
+                                disabled={true}
+                            />
+                        </div>
+                    </div>
+                </div>
                 <div className="col-3 text-right">
                     <div className="d-flex align-items-center">
                         <label>ผู้สร้างเอกสาร</label>
@@ -856,7 +916,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                 </div>
             </div>
             <div className="row mt-1">
-                <div className="col-3">
+                <div className="col-3 text-left">
                     <div className="d-flex align-items-center">
                         <label>วันที่เอกสารอ้างอิง</label>
                         <Datetime
@@ -866,11 +926,11 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             onChange={(date) => handleChangeDateMaster(date, 'refDocDate')}
                             dateFormat="DD-MM-YYYY"
                             timeFormat={false}
-                            inputProps={{ readOnly: true, disabled: formMasterList.docStatus === 1 ? false : true }}
+                            inputProps={{ readOnly: true, disabled: docStatus === 1 ? false : true }}
                         />
                     </div>
                 </div>
-                <div className="col-4">
+                <div className="col-3 text-center">
                     <div className="d-flex align-items-center">
                         <label></label>
                         <input
@@ -884,7 +944,21 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             disabled={true} />
                     </div>
                 </div>
-                <div className="col-2" />
+                <div className="col-3 text-left">
+                    <div className="d-flex align-items-center">
+                        <label>อีเมลลูกค้า</label>
+                        <div className="input-group">
+                            <input
+                                type="text"
+                                className="form-control input-spacing"
+                                value={
+                                    (formMasterList.custMail || '')
+                                }
+                                disabled={true}
+                            />
+                        </div>
+                    </div>
+                </div>
                 <div className="col-3 text-right">
                     <div className="d-flex align-items-center">
                         <label>วันที่แก้ไขล่าสุด</label>
@@ -900,15 +974,15 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                 </div>
             </div>
             <div className="row mt-1">
-                <div className="col-3">
-                    <div className="d-flex align-items-center">
+                <div className="col-3 text-left">
+                    {/* <div className="d-flex align-items-center">
                         <label>ประเภทเอกสาร</label>
                         <select
                             className="form-select form-control input-spacing"
                             name="docType"
                             value={formMasterList.docType}
                             onChange={handleChangeMaster}
-                            disabled={formMasterList.docStatus !== 1}
+                            disabled={docStatus !== 1}
                         >
                             {tbDocType.map((docType) => (
                                 <option key={docType.DocType_Id} value={docType.DocType_Id}>
@@ -916,9 +990,9 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                                 </option>
                             ))}
                         </select>
-                    </div>
+                    </div> */}
                 </div>
-                <div className="col-4">
+                <div className="col-3 text-center">
                     <div className="d-flex align-items-center">
                         <label></label>
                         <input
@@ -932,7 +1006,21 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             disabled={true} />
                     </div>
                 </div>
-                <div className="col-2" />
+                <div className="col-3 text-left">
+                    <div className="d-flex align-items-center">
+                        <label>หมายเหตุลูกค้า</label>
+                        <div className="input-group">
+                            <input
+                                type="text"
+                                className="form-control input-spacing"
+                                value={
+                                    (formMasterList.custConfirmMemo || '')
+                                }
+                                disabled={true}
+                            />
+                        </div>
+                    </div>
+                </div>
                 <div className="col-3 text-right">
                     <div className="d-flex align-items-center">
                         <label>ผู้แก้ไขเอกสาร</label>
@@ -947,21 +1035,21 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                 </div>
             </div>
             <div className="row mt-1">
-                <div className="col-3">
-                    <div className="d-flex align-items-center">
+                <div className="col-3 text-left">
+                    {/* <div className="d-flex align-items-center">
                         <label>วัตถุประสงค์</label>
                         <select
                             name="docFor"
                             value={formMasterList.docFor}
                             onChange={handleChangeMaster}
                             className="form-select form-control input-spacing"
-                            disabled={formMasterList.docStatus !== 1}>
+                            disabled={docStatus !== 1}>
                             <option value="1">ซื้อมาเพื่อใช้</option>
                             <option value="2">ซื้อมาเพื่อขาย</option>
                         </select>
-                    </div>
+                    </div> */}
                 </div>
-                <div className="col-4">
+                <div className="col-3 text-center">
                     <div className="d-flex align-items-center">
                         <label></label>
                         <input
@@ -971,7 +1059,35 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             disabled={true} />
                     </div>
                 </div>
-                <div className="col-2" />
+                <div className="col-3 text-left">
+                    <div className="d-flex align-items-center">
+                        <div className="row">
+                            <div className="col-3">
+                                <label>ช่องทางการชำระ</label>
+                            </div>
+                            <div className="col-1" />
+                            <div className="col-6">
+                                <div className="radio-inline">
+                                    <input
+                                        className="form-check-input"
+                                        type="radio"
+                                        checked={formMasterList.payType === 1}
+                                        disabled={true}
+                                    />
+                                    <label className="form-check-label">เงินสด</label>
+                                    <input
+                                        className="form-check-input"
+                                        type="radio"
+                                        checked={formMasterList.payType === 2}
+                                        disabled={true}
+                                    />
+                                    <label className="form-check-label">เงินโอน</label>
+                                </div>
+                            </div>
+                            <div className="col-2" />
+                        </div>
+                    </div>
+                </div>
                 <div className="col-3 text-right">
                     <div className="d-flex align-items-center">
                         <label>วันที่อนุมัติ</label>
@@ -986,8 +1102,8 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                 </div>
             </div>
             <div className="row mt-1">
-                <div className="col-3">
-                    <div className="d-flex align-items-center">
+                <div className="col-3 text-left">
+                    {/* <div className="d-flex align-items-center">
                         <label>Due Date</label>
                         <Datetime
                             className="input-spacing-input-date"
@@ -996,11 +1112,11 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             onChange={(date) => handleChangeDateMaster(date, 'docDueDate')}
                             dateFormat="DD-MM-YYYY"
                             timeFormat={false}
-                            inputProps={{ readOnly: true, disabled: formMasterList.docStatus === 1 ? false : true }}
+                            inputProps={{ readOnly: true, disabled: docStatus === 1 ? false : true }}
                         />
-                    </div>
+                    </div> */}
                 </div>
-                <div className="col-6" />
+                <div className="col-6 text-left" />
                 <div className="col-3 text-right">
                     <div className="d-flex align-items-center">
                         <label>ผู้อนุมัติเอกสาร</label>
@@ -1015,15 +1131,15 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                 </div>
             </div>
             <div className="row mt-1">
-                <div className="col-3">
-                    <div className="d-flex align-items-center">
+                <div className="col-3 text-left">
+                    {/* <div className="d-flex align-items-center">
                         <label>วิธีจัดส่ง</label>
                         <select
                             name="transportType"
                             value={formMasterList.transportType}
                             onChange={handleChangeMaster}
                             className="form-select form-control input-spacing"
-                            disabled={formMasterList.docStatus !== 1}
+                            disabled={docStatus !== 1}
                         >
                             {tbTransType.map((transType) => (
                                 <option key={transType.Trans_TypeID} value={transType.Trans_TypeID}>
@@ -1031,9 +1147,9 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                                 </option>
                             ))}
                         </select>
-                    </div>
+                    </div> */}
                 </div>
-                <div className="col-6" />
+                <div className="col-6 text-left" />
                 <div className="col-3 text-right">
                     <div className="d-flex align-items-center">
                         <label>หมายเหตุอนุมัติ</label>
@@ -1049,7 +1165,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
             </div>
             <hr />
             <div className="row mt-2">
-                <div className="col-6">
+                <div className="col-6 ">
                     <div className="d-flex align-items-center">
                         <label>รายละเอียดเอกสาร</label>
                         <input
@@ -1059,7 +1175,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             value={formMasterList.docRemark1 || ''}
                             onChange={handleChangeMaster}
                             maxLength={100}
-                            disabled={formMasterList.docStatus !== 1} />
+                            disabled={docStatus !== 1} />
                     </div>
                 </div>
                 <div className="col-6">
@@ -1072,7 +1188,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                             value={formMasterList.docRemark2 || ''}
                             onChange={handleChangeMaster}
                             maxLength={500}
-                            disabled={formMasterList.docStatus !== 1} />
+                            disabled={docStatus !== 1} />
                     </div>
                 </div>
             </div>
@@ -1090,7 +1206,7 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                     whDataList={whDataList}
                     handleFocus={handleFocus}
                     handleBlur={handleBlur}
-                    disabled={formMasterList.docStatus === 1 ? false : true}
+                    disabled={docStatus === 1 ? false : true}
                 />
                 <div className="col-12">
                     <div className="card">
@@ -1125,8 +1241,10 @@ function Form({ callInitialize, mode, name, maxDocNo }) {
                     onSubmit={handleSubmit}
                     onUpdate={handleUpdate}
                     onCancel={handleCancel}
+                    onApprovedPay={handleApprovedPay}
                     mode={mode}
-                    disabled={formMasterList.docStatus === 1 ? false : true}
+                    docStatus={docStatus}
+                    disabled={docStatus === 1 ? false : true}
                 />
             </div>
             <br />

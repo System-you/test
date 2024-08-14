@@ -247,31 +247,25 @@ const WhModal = ({ showWhModal, handleWhClose, itemDetailModal }) => {
                                                     <small className="text-danger mb-1">ต้นทาง</small>
                                                     <div className="d-flex align-items-center">
                                                         <label className="me-1">คลัง : </label>
-                                                        <input
-                                                            type="text"
-                                                            id="whName"
-                                                            className="form-control flex-fill"
-                                                            value={formData.whName}
-                                                            onChange={handleChange}
-                                                            disabled={true}
-                                                            style={{ fontWeight: 'bold' }}
+                                                        <select className="form-select" aria-label="Default select example">
+                                                            <option selected>ไม่ระบุ</option>
+                                                            <option value="1">2023</option>
+                                                            <option value="2">2022</option>
+                                                            <option value="3">2021</option>
+                                                        </select>
 
-                                                        />
                                                     </div>
                                                 </div>
                                                 <div className="col-10 mb-2">
                                                     <small className="text-danger mb-1">ปลายทาง</small>
                                                     <div className="d-flex align-items-center">
                                                         <label className="me-1">คลัง : </label>
-                                                        <input
-                                                            type="text"
-                                                            id="whName"
-                                                            className="form-control flex-fill"
-                                                            // value={formData.whName}
-                                                            onChange={handleChange}
-                                                            disabled={true}
-                                                            style={{ fontWeight: 'bold' }}
-                                                        />
+                                                        <select className="form-select" aria-label="Default select example">
+                                                            <option selected>ไม่ระบุ</option>
+                                                            <option value="1">2023</option>
+                                                            <option value="2">2022</option>
+                                                            <option value="3">2021</option>
+                                                        </select>
                                                     </div>
                                                 </div>
                                             </div>
@@ -354,8 +348,12 @@ const WhModal = ({ showWhModal, handleWhClose, itemDetailModal }) => {
                                     </div>
                                 </div>
                                 <div className="modal-footer">
-                                    <button type="submit" className="btn btn-primary btn-lg" disabled={disabled}>ยืนยันการปรับปรุง</button>
-                                    <button type="button" className="btn btn-danger btn-lg" onClick={handleWhClose}>ยกเลิกการปรับปรุง</button>
+                                    <button type="submit"
+                                        className="btn  btn-lg text-white"
+                                        style={{ backgroundColor: 'rgb(239, 108, 0)' }} disabled={disabled}>ยืนยันการปรับปรุง</button>
+                                    <button type="button"
+                                        className="btn btn-lg text-white"
+                                        style={{ backgroundColor: 'black' }} onClick={handleWhClose}>ยกเลิกการปรับปรุง</button>
                                 </div>
                             </form>
                         </div>

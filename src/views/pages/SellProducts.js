@@ -3,8 +3,7 @@ import Sidebar from '../components/Sidebar';
 import Footer from '../components/Footer';
 import Breadcrumbs from '../components/Breadcrumbs';
 
-function Warehouse() {
-  // console.log('Warehouse');
+const SellProducts = () => {
   const renderCard = (category, icon, newItems, additionalInfo, path) => (
     <div className="col-sm-6 col-md-2" style={{ cursor: 'pointer' }} onClick={() => window.location.replace(path)}>
       <div className="card card-stats card-round">
@@ -36,7 +35,6 @@ function Warehouse() {
       </div>
     </div>
   );
-
   return (
     <div className="Warehouse">
       <div className="wrapper">
@@ -50,8 +48,8 @@ function Warehouse() {
                 ]} />
               </div>
               <div className="row">
-                {renderCard('คลัง', 'far fa-file-alt', 1, [5, 0, 0], '/warehouse-stock')}
-                {renderCard('จัดการเอกสารงานคลัง', 'fas fa-file-invoice', 1, [5, 0, 0], '/treasury-documents')}
+                {renderCard('ใบเสนอราคา (QT)', 'far fa-file-alt', 1, [5, 0, 0], '/quotation')}
+                {renderCard('ใบขาย (SO)', 'fas fa-file-invoice', 1, [5, 0, 0], '/billofsale')}
               </div>
             </div>
           </div>
@@ -60,6 +58,6 @@ function Warehouse() {
       </div>
     </div>
   );
-}
+};
 
-export default Warehouse;
+export default SellProducts;

@@ -13,14 +13,15 @@ import ProductReceipt from "./views/pages/Purchase/ProductReceipt";
 import PaymentVoucher from "./views/pages/Purchase/PaymentVoucher";
 import Warehouse from "./views/pages/Warehouse";
 import WarehouseStock from "./views/pages/Warehouse/WarehouseStock";
+import TreasuryDocuments from "./views/pages/Warehouse/TreasuryDocuments";
 import NotFoundPage from "./views/pages/404";
-
 const root = ReactDOM.createRoot(document.getElementById("root"));
 const isLoggedIn = localStorage.getItem('token');
 
 root.render(
   <BrowserRouter>
     <Routes>
+      
       {/* Purchase */}
       <Route path="/" element={isLoggedIn ? <Home /> : <Navigate to="/login" />} />
       <Route path="/purchase" element={isLoggedIn ? <Purchase /> : <Navigate to="/login" />} />
@@ -33,10 +34,12 @@ root.render(
       {/* Warehouse */}
       <Route path="/warehouse" element={isLoggedIn ? <Warehouse /> : <Navigate to="/login" />} />
       <Route path="/warehouse-stock" element={isLoggedIn ? <WarehouseStock /> : <Navigate to="/login" />} />
+      <Route path="/treasury-documents" element={isLoggedIn ? <TreasuryDocuments /> : <Navigate to="/login" />} />
 
       {/* Login */}
       <Route path="/login" element={<Login />} />
       <Route path="*" element={<NotFoundPage />} />
+
     </Routes>
   </BrowserRouter>
 );

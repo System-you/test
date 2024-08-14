@@ -125,17 +125,22 @@ function Sidebar() {
                   </ul>
                 </div>
               </li>
-              <li className={`nav-item ${['/warehouse-stock'].includes(location.pathname) ? 'active' : ''} text-white`}>
+              <li className={`nav-item ${['/warehouse-stock', '/treasury-documents'].includes(location.pathname) ? 'active' : ''} text-white`}>
                 <a href="/warehouse" className="collapsed" aria-expanded="false">
                   <i className="fas fa-building" style={{ color: 'white' }} />
                   <p>คลังสินค้า</p>
                   <span className="caret" />
                 </a>
-                <div className={`collapse ${['/warehouse', '/warehouse-stock'].includes(location.pathname) ? 'show' : ''}`} id="data">
+                <div className={`collapse ${['/warehouse', '/warehouse-stock', '/treasury-documents'].includes(location.pathname) ? 'show' : ''}`} id="data">
                   <ul className="nav nav-collapse">
                     <li className={`nav-item ${location.pathname === '/warehouse-stock' ? 'active' : ''}`}>
                       <a href="/warehouse-stock">
                         <span className="sub-item">สต็อกคลังสินค้า</span>
+                      </a>
+                    </li>
+                    <li className={`nav-item ${location.pathname === '/treasury-documents' ? 'active' : ''}`}>
+                      <a href="/treasury-documents">
+                        <span className="sub-item">จัดการเอกสารงานคลัง</span>
                       </a>
                     </li>
                   </ul>

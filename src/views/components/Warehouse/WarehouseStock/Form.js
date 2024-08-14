@@ -13,7 +13,7 @@ function Form({ name, masterList, tbSetWh, apiOnHand }) {
     const [dataItem, setDataItem] = useState([]);
     const [historyList, setHistoryList] = useState([]);
     const [warehouseId, setWarehouseId] = useState("");
-
+    console.debug('dataItem =>', dataItem);
     // Table 3
     const ApiGetHistory = async (itemId) => {
         try {
@@ -122,27 +122,35 @@ function Form({ name, masterList, tbSetWh, apiOnHand }) {
                 { name: name, url: '/warehouse-stock' },
                 { name: "สร้าง" + name, url: '#' },
             ]} />
-            <div className='container-fluid mt-1'>
-                <div className="d-flex justify-content-between align-items-center">
-                    <div className="col-4 mb-3 ms-1">
-                        <h4 className="card-title mb-2">Barcode</h4>
-                        <input type="text" className="form-control" />
-                    </div>
-                    <div className="col-4 mb-3 ms-1">
-                        <h4 className="card-title mb-2">รหัสสินค้า</h4>
-                        <input type="text" className="form-control" />
-                    </div>
-                    <div className="col-4 mb-3 ms-1">
-                        <h4 className="card-title mb-2">ค้นหา</h4>
-                        <div className="input-group">
+            <div className='container-fluid my-2'>
+                <div className="row">
+                    <div className="col-4">
+                        <div className="d-flex align-items-center">
+                            <h5 className="text-nowrap card-title mb-0 me-3">ค้นหาสินค้า</h5>
                             <input type="text" className="form-control" />
-                            <button className="btn btn-outline-secondary">
-                                <i className="fas fa-search"></i>
+                        </div>
+                    </div>
+                    <div className='col-6'>
+                        <div className='d-flex'>
+                            <select className="form-select" aria-label="Default select example" style={{ maxWidth: '190px' }}>
+                                <option selected>แสดงยอดคงเหลือ > 0</option>
+                                <option value="1">แสดงยอดคงเหลือ > = 0</option>
+                                <option value="2">แสดงยอดคงเหลือ = 0</option>
+                                <option value="3">แสดงทุกรายการ</option>
+                            </select>
+                            <i className="fa fa-search fs-4 mx-4" style={{ cursor: 'pointer' }} aria-hidden="true"></i>
+                            <button className="btn text-white mx-1" style={{ backgroundColor: 'rgb(239, 108, 0)' }}>
+                                <i className="fa fa-file-excel me-1" aria-hidden="true"></i> Export สินค้ายอดคงเหลือ
+                            </button>
+                            <button className="btn text-white mx-3" style={{ backgroundColor: 'rgb(239, 108, 0)' }}>
+                                <i className="fa fa-warehouse me-1" aria-hidden="true"></i> Export สินค้าแยกตามคลัง
                             </button>
                         </div>
                     </div>
+                    <div className='col-2'> </div>
                 </div>
             </div>
+            {/*  */}
             <div className="row mt-1">
                 <div className="col-5">
                     <div className="col-12">
@@ -194,11 +202,11 @@ function Form({ name, masterList, tbSetWh, apiOnHand }) {
                                             <tr>
                                                 {/* <th className="text-center" style={{ width: '2%' }}>#</th> */}
                                                 <th className="text-center" style={{ width: '10%' }}>รหัสสินค้า</th>
-                                                <th className="text-center" style={{ width: '13%' }}>ชื่อสินค้า</th>
-                                                <th className="text-center" style={{ width: '5%' }}>คงเหลือ</th>
-                                                <th className="text-center" style={{ width: '5%' }}>WH_Name</th>
-                                                <th className="text-center" style={{ width: '5%' }}>Last_STC_Date</th>
-                                                <th className="text-center" style={{ width: '5%' }}>Last_STC_SEQ</th>
+                                                <th className="text-center" style={{ width: '23%' }}>ชื่อสินค้า</th>
+                                                <th className="text-center" style={{ width: '6%' }}>คงเหลือ</th>
+                                                <th className="text-center" style={{ width: '13%' }}>WH_Name</th>
+                                                <th className="text-center" style={{ width: '4%' }}>Last_STC_Date</th>
+                                                <th className="text-center" style={{ width: '4%' }}>Last_STC_SEQ</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -278,6 +286,7 @@ function Form({ name, masterList, tbSetWh, apiOnHand }) {
                                                         ))}
                                                     </select>
                                                 </div>
+
                                                 <div className="col-4 d-flex align-items-center">
                                                     <h4 className="card-title mb-0 me-2">ค้นหา</h4>
                                                     <div className="input-group w-50">
@@ -296,12 +305,12 @@ function Form({ name, masterList, tbSetWh, apiOnHand }) {
                                                     <table id="basic-datatables" className="table table-striped table-hover">
                                                         <thead className="thead-dark">
                                                             <tr>
-                                                                <th className="text-center" style={{ width: '10%' }}>รหัสสินค้า</th>
-                                                                <th className="text-center" style={{ width: '13%' }}>ชื่อสินค้า</th>
-                                                                <th className="text-center" style={{ width: '5%' }}>คงเหลือ</th>
-                                                                <th className="text-center" style={{ width: '5%' }}>WH_Name</th>
-                                                                <th className="text-center" style={{ width: '5%' }}>Last_STC_Date</th>
-                                                                <th className="text-center" style={{ width: '5%' }}>Last_STC_SEQ</th>
+                                                                <th className="text-center" style={{ width: '2%' }}>รหัสสินค้า</th>
+                                                                <th className="text-center" style={{ width: '20%' }}>ชื่อสินค้า</th>
+                                                                <th className="text-center" style={{ width: '1%' }}>คงเหลือ</th>
+                                                                <th className="text-center" style={{ width: '4%' }}>WH_Name</th>
+                                                                <th className="text-center" style={{ width: '2%' }}>Last_STC_Date</th>
+                                                                <th className="text-center" style={{ width: '2%' }}>Last_STC_SEQ</th>
                                                             </tr>
                                                         </thead>
                                                         <tbody>
@@ -339,51 +348,82 @@ function Form({ name, masterList, tbSetWh, apiOnHand }) {
                                     {/* WarehouseHistory */}
                                     <div className="col-12">
                                         <div className="card">
-                                            <div className="card-header d-flex justify-content-between align-items-center">
-                                                <div className="col-4 d-flex align-items-center">
-                                                    <h4 className="card-title mb-0 me-2">เลือกคลัง</h4>
-                                                    <select
-                                                        style={{ width: '200px' }}
-                                                        className="form-select"
-                                                        onChange={(e) => setSelectedWhId(e.target.value)}
-                                                    >
-                                                        {tbSetWh.map((ware) => (
-                                                            <option key={ware.WH_Id} value={ware.WH_Id}>
-                                                                {ware.WH_Name}
-                                                            </option>
-                                                        ))}
-                                                    </select>
-                                                </div>
-                                                <div className="col-4 d-flex align-items-center">
-                                                    <h4 className="card-title mb-0 me-2">ค้นหา</h4>
-                                                    <div className="input-group w-50">
-                                                        <input type="text" className="form-control" />
-                                                        <button className="btn btn-outline-secondary">
-                                                            <i className="fas fa-search"></i>
-                                                        </button>
+                                            <div className="card-header">
+                                                <div className="container-fluid">
+                                                    <div className="d-flex flex-row">
+                                                        <div className="col-3">
+                                                            <div className="d-flex">
+                                                                <h4 className="card-title mb-0 me-2">เลือกคลัง</h4>
+                                                                <select
+                                                                    style={{ width: '200px' }}
+                                                                    className="form-select"
+                                                                    onChange={(e) => setSelectedWhId(e.target.value)}
+                                                                >
+                                                                    {tbSetWh.map((ware) => (
+                                                                        <option key={ware.WH_Id} value={ware.WH_Id}>
+                                                                            {ware.WH_Name}
+                                                                        </option>
+                                                                    ))}
+                                                                </select>
+                                                            </div>
+                                                        </div>
+                                                        <div className='col-4'>
+                                                            <div className="radio-inline">
+                                                                <input
+                                                                    className="form-check-input"
+                                                                    type="radio"
+                                                                    name="radioOptions" value="" checked
+                                                                />
+                                                                <label className="form-check-label">แสดง STC ปีปัจจุบันเท่านั้น</label>
+                                                                <input
+                                                                    className="form-check-input"
+                                                                    type="radio"
+                                                                    name="radioOptions" value=""
+
+                                                                />
+                                                                <label className="form-check-label">แสดง STC ตั้งแต่เริ่มต้น</label>
+                                                            </div>
+                                                        </div>
+                                                        <div className="col-3 mx-5">
+                                                            <div className='d-flex'>
+                                                                <h4 className="card-title mb-0 me-2">ค้นหา</h4>
+                                                                <div className="input-group w-50">
+                                                                    <input type="text" className="form-control" />
+                                                                    <button className="btn btn-outline-secondary">
+                                                                        <i className="fas fa-search"></i>
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="col-3 mx-2">
+                                                            <div className='d-flex'>
+                                                                <button className="btn text-white btn-lg" onClick={handleWhShow} style={{
+                                                                    backgroundColor: 'rgb(239, 108, 0)',
+                                                                }}>
+                                                                    <i className="fa fa-edit me-1" aria-hidden="true"></i>         ปรับปรุงคลัง
+                                                                </button>
+                                                                {/* WhModal */}
+                                                                <WhModal showWhModal={showWhModal} handleWhClose={handleWhClose} itemDetailModal={filteredHistoryList[0]} />
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                                <div className="col-4 d-flex align-items-center">
-                                                    <button className="btn btn-primary btn-lg" onClick={handleWhShow}>
-                                                        ปรับปรุงคลัง
-                                                    </button>
-                                                    {/*  WhModal  */}
-                                                    <WhModal showWhModal={showWhModal} handleWhClose={handleWhClose} itemDetailModal={filteredHistoryList[0]} />
-                                                </div>
+
                                             </div>
+
 
                                             <div className="card-body">
                                                 <div className="table-responsive">
                                                     <table id="basic-datatables" className="table table-striped table-hover">
                                                         <thead className="thead-dark">
                                                             <tr>
-                                                                <th className="text-center" style={{ width: '2%' }}>Line</th>
-                                                                <th className="text-center" style={{ width: '10%' }}>รหัสสินค้า</th>
-                                                                <th className="text-center" style={{ width: '13%' }}>ชื่อสินค้า</th>
-                                                                <th className="text-center" style={{ width: '5%' }}>Doc_Type</th>
-                                                                <th className="text-center" style={{ width: '5%' }}>จำนวนคงเหลือ</th>
+                                                                <th className="text-center" style={{ width: '1%' }}>Line</th>
+                                                                <th className="text-center" style={{ width: '6%' }}>รหัสสินค้า</th>
+                                                                <th className="text-center" style={{ width: '18%' }}>ชื่อสินค้า</th>
+                                                                <th className="text-center" style={{ width: '1%' }}>Doc_Type</th>
+                                                                <th className="text-center" style={{ width: '4%' }}>จำนวนคงเหลือ</th>
                                                                 <th className="text-center" style={{ width: '5%' }}>วันที่ทำรายการ</th>
-                                                                <th className="text-center" style={{ width: '5%' }}>WH</th>
+                                                                <th className="text-center" style={{ width: '6%' }}>WH</th>
                                                                 <th className="text-center" style={{ width: '5%' }}>Doc_No</th>
                                                                 <th className="text-center" style={{ width: '5%' }}>Doc_NoRef</th>
                                                                 <th className="text-center" style={{ width: '5%' }}>STC_SEQ</th>

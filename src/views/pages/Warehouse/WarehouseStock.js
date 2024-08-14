@@ -54,7 +54,7 @@ function WarehouseStock() {
   };
 
   return (
-    <div className="PurchaseOrder">
+    <div className="WarehouseStock">
       <div className="wrapper">
         <Sidebar />
         <div className="main-panel">
